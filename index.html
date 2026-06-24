@@ -13,7 +13,6 @@
             }
         }
     </script>
-    <!-- Biblioteca PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         /* ===== RESET & BASE ===== */
@@ -468,6 +467,35 @@
             .export-section { flex-direction: column; align-items: stretch; }
             .export-section input[type="date"] { width: 100%; }
         }
+
+        /* Elemento para captura do PDF (sempre visível, mas fora da tela) */
+        #pdfContent {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            width: 800px;
+            background: white;
+            padding: 40px;
+            font-family: 'Inter', sans-serif;
+            color: #0a1e2f;
+            z-index: -1;
+            opacity: 0;
+            pointer-events: none;
+            transition: none;
+        }
+        /* Quando estiver gerando, tornamos visível */
+        #pdfContent.generating {
+            opacity: 1;
+            z-index: 9999;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            position: fixed;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-radius: 16px;
+        }
     </style>
 </head>
 <body>
@@ -546,8 +574,8 @@
 <!-- TOAST -->
 <div id="toast" class="toast"></div>
 
-<!-- ELEMENTO PARA PDF (visível para captura) -->
-<div id="pdfContent" style="position:absolute; left:-9999px; top:0; width:800px; background:white; padding:40px; font-family: 'Inter', sans-serif; color:#0a1e2f;"></div>
+<!-- ELEMENTO PARA PDF (será preenchido dinamicamente) -->
+<div id="pdfContent"></div>
 
 <script type="module">
     // ============================================================
@@ -571,7 +599,6 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    // Autenticação anônima automática
     signInAnonymously(auth)
         .then(() => console.log('✅ Autenticado anonimamente'))
         .catch((err) => console.warn('⚠️ Falha na autenticação anônima:', err));
@@ -624,6 +651,7 @@
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
     const exportPdfBtn = document.getElementById('exportPdfBtn');
+    const pdfElement = document.getElementById('pdfContent');
 
     // ============================================================
     // TOAST E SYNC STATUS
@@ -1109,27 +1137,19 @@
     // ============================================================
     // EXPORTAÇÃO PDF (CORRIGIDA)
     // ============================================================
-    function getEventsInPeriod(startDate, endDate) {
-        return allEvents.filter(ev => {
-            if (!ev.data) return false;
-            // ev.data já está no formato YYYY-MM-DD
-            return ev.data >= startDate && ev.data <= endDate;
-        });
-    }
-
-    function generatePDFContent(startDate, endDate) {
-        const filtered = getEventsInPeriod(startDate, endDate);
-        filtered.sort((a, b) => a.data.localeCompare(b.data));
+    function generatePDFContent(startDate, endDate, events) {
+        const filtered = events || [];
+        const sorted = [...filtered].sort((a, b) => a.data.localeCompare(b.data));
 
         const now = new Date();
         const dateStr = now.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
         const timeStr = now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
 
         let rows = '';
-        if (filtered.length === 0) {
+        if (sorted.length === 0) {
             rows = `<tr><td colspan="6" style="text-align:center;padding:20px;color:#6b7f93;">Nenhum agendamento encontrado no período.</td></tr>`;
         } else {
-            filtered.forEach(ev => {
+            sorted.forEach(ev => {
                 const status = ev.concluido ? '✅ Concluído' : '⏳ Pendente';
                 rows += `
                     <tr>
@@ -1154,7 +1174,7 @@
                 </div>
                 <div style="background: white; padding: 30px 40px; border-radius: 0 0 16px 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; border-top: none;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
-                        <span style="font-weight: 600; color: #1e3a5f; font-size: 1.1rem;">Total de eventos: <span style="color: #2b5a8a;">${filtered.length}</span></span>
+                        <span style="font-weight: 600; color: #1e3a5f; font-size: 1.1rem;">Total de eventos: <span style="color: #2b5a8a;">${sorted.length}</span></span>
                         <span style="color: #6b7f93; font-size: 0.9rem;">Gerado em ${dateStr} às ${timeStr}</span>
                     </div>
                     <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
@@ -1193,17 +1213,38 @@
             return;
         }
 
-        // Gera o conteúdo HTML para o PDF
-        const contentHTML = generatePDFContent(start, end);
-        const pdfElement = document.getElementById('pdfContent');
+        // Filtra eventos
+        const filtered = allEvents.filter(ev => {
+            if (!ev.data) return false;
+            return ev.data >= start && ev.data <= end;
+        });
+
+        console.log(`📊 Eventos no período ${start} a ${end}: ${filtered.length}`);
+
+        // Gera HTML
+        const contentHTML = generatePDFContent(start, end, filtered);
         pdfElement.innerHTML = contentHTML;
 
-        // Configuração do PDF
+        // Torna o elemento visível para captura (mas fora da tela)
+        pdfElement.style.position = 'absolute';
+        pdfElement.style.left = '-9999px';
+        pdfElement.style.top = '0';
+        pdfElement.style.width = '800px';
+        pdfElement.style.background = 'white';
+        pdfElement.style.padding = '40px';
+        pdfElement.style.opacity = '1';
+        pdfElement.style.pointerEvents = 'none';
+        pdfElement.style.display = 'block';
+        pdfElement.style.zIndex = '-1';
+
+        // Aguarda um tick para renderização
+        await new Promise(resolve => setTimeout(resolve, 200));
+
         const opt = {
-            margin:        [0.5, 0.5, 0.5, 0.5], // em polegadas
+            margin:        [0.5, 0.5, 0.5, 0.5],
             filename:     `relatorio_agendamentos_${start}_a_${end}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, letterRendering: true, useCORS: true, logging: false },
+            html2canvas:  { scale: 2, letterRendering: true, useCORS: true, logging: true },
             jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
 
@@ -1216,6 +1257,7 @@
             showToast('Erro ao gerar PDF: ' + error.message);
         } finally {
             pdfElement.innerHTML = '';
+            pdfElement.style.display = 'none';
         }
     });
 
@@ -1230,6 +1272,7 @@
         const end = formatDateKey(lastDay.getFullYear(), lastDay.getMonth(), lastDay.getDate());
         startDateInput.value = start;
         endDateInput.value = end;
+        console.log(`📅 Período padrão definido: ${start} a ${end}`);
     }
     setDefaultPeriod();
 
@@ -1248,6 +1291,7 @@
             allEvents = events;
             renderCalendar(events, currentDate.getFullYear(), currentDate.getMonth());
             setSyncStatus('online');
+            console.log(`📥 Eventos carregados: ${events.length}`);
         }, (error) => {
             console.error('Firebase error:', error);
             setSyncStatus('error');
@@ -1268,7 +1312,7 @@
     selectedDate = todayStr;
     initFirebaseListener();
 
-    console.log('App profissional com autenticação anônima e PDF corrigido.');
+    console.log('🚀 App profissional com PDF corrigido iniciado.');
 </script>
 </body>
 </html>
