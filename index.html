@@ -8,11 +8,11 @@
         {
             "imports": {
                 "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
-                "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"
+                "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js",
+                "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"
             }
         }
     </script>
-    <!-- Biblioteca para gerar PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         /* ===== RESET & BASE ===== */
@@ -546,14 +546,15 @@
 <div id="toast" class="toast"></div>
 
 <!-- ELEMENTO OCULTO PARA GERAR PDF -->
-<div id="pdfContent" style="position:absolute; left:-9999px; top:0; width:800px; background:white; padding:40px; font-family: 'Inter', sans-serif; color:#0a1e2f;">
-    <!-- Será preenchido dinamicamente -->
-</div>
+<div id="pdfContent" style="position:absolute; left:-9999px; top:0; width:800px; background:white; padding:40px; font-family: 'Inter', sans-serif; color:#0a1e2f;"></div>
 
 <script type="module">
-    // ----- IMPORTS FIREBASE -----
+    // ============================================================
+    // IMPORTS FIREBASE COM AUTENTICAÇÃO ANÔNIMA
+    // ============================================================
     import { initializeApp } from 'firebase/app';
     import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
+    import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
     const firebaseConfig = {
         apiKey: "AIzaSyDMwdtyx3zWHwCHtalq572E_FyrF4f-drM",
@@ -567,9 +568,33 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const eventsCollection = collection(db, 'agendamentos');
+    const auth = getAuth(app);
 
-    // ----- ESTADO -----
+    // Autenticação anônima automática
+    signInAnonymously(auth)
+        .then(() => {
+            console.log('✅ Autenticado anonimamente');
+            showToast('🔐 Conectado ao banco de dados', 1500);
+        })
+        .catch((err) => {
+            console.warn('⚠️ Falha na autenticação anônima:', err);
+            showToast('⚠️ Modo offline: alguns recursos podem não funcionar', 3000);
+        });
+
+    // Monitora mudança de estado (opcional)
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            console.log('Usuário autenticado UID:', user.uid);
+            setSyncStatus('online');
+        } else {
+            console.log('Usuário desconectado');
+            setSyncStatus('offline');
+        }
+    });
+
+    // ============================================================
+    // ESTADO GLOBAL
+    // ============================================================
     let allEvents = [];
     let currentDate = new Date();
     let selectedDate = null;
@@ -606,7 +631,9 @@
     const endDateInput = document.getElementById('endDate');
     const exportPdfBtn = document.getElementById('exportPdfBtn');
 
-    // ----- TOAST -----
+    // ============================================================
+    // UTILITÁRIOS
+    // ============================================================
     function showToast(msg, duration = 2500) {
         toast.textContent = msg;
         toast.classList.add('show');
@@ -614,14 +641,12 @@
         toast._timer = setTimeout(() => toast.classList.remove('show'), duration);
     }
 
-    // ----- SYNC STATUS -----
     function setSyncStatus(state) {
         syncDot.className = 'dot ' + state;
         const labels = { online: 'Sincronizado', offline: 'Offline', error: 'Erro' };
         syncLabel.textContent = labels[state] || 'Sincronizado';
     }
 
-    // ----- FORMATAÇÃO -----
     function formatDateKey(year, month, day) {
         return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
@@ -633,12 +658,6 @@
         } catch { return dateStr; }
     }
 
-    function formatDateForInput(dateStr) {
-        // recebe YYYY-MM-DD e retorna para input date
-        return dateStr;
-    }
-
-    // ----- PARSE DE DATA -----
     function parseDateFromString(str) {
         str = str.trim();
         if (!str) return null;
@@ -672,7 +691,9 @@
         return parsed ? formatDateKey(parsed.year, parsed.month, parsed.day) : null;
     }
 
-    // ----- KEYWORD MAP -----
+    // ============================================================
+    // MAPEAMENTO DE PALAVRAS-CHAVE E PARSE
+    // ============================================================
     const KEYWORD_MAP = {
         'data':'data','responsável':'responsavel','responsavel':'responsavel','resp':'responsavel',
         'celular':'celular','cel':'celular','telefone':'celular',
@@ -743,7 +764,9 @@
         return result;
     }
 
-    // ----- RENDER CALENDÁRIO -----
+    // ============================================================
+    // RENDER CALENDÁRIO
+    // ============================================================
     function renderCalendar(events, year, month) {
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -814,7 +837,9 @@
         }
     }
 
-    // ----- RENDER EVENTOS DO DIA -----
+    // ============================================================
+    // RENDER EVENTOS DO DIA
+    // ============================================================
     function renderDayEvents(events, dateKey) {
         const filtered = events.filter(ev => ev.data === dateKey);
         if (filtered.length === 0) {
@@ -879,7 +904,9 @@
         });
     }
 
-    // ----- MODAL DE DETALHES -----
+    // ============================================================
+    // MODAL DE DETALHES
+    // ============================================================
     function openDetailModal(ev) {
         currentModalId = ev.id;
         const done = ev.concluido === true;
@@ -912,7 +939,6 @@
         currentModalId = null;
     }
 
-    // Ações do modal
     toggleDoneBtn.addEventListener('click', async () => {
         if (!currentModalId) return;
         const ev = allEvents.find(e => e.id === currentModalId);
@@ -953,7 +979,9 @@
         if (e.target === detailModal) closeDetailModal();
     });
 
-    // ----- CARREGAR PARA EDIÇÃO -----
+    // ============================================================
+    // CARREGAR PARA EDIÇÃO
+    // ============================================================
     function loadEventForEdit(ev) {
         const container = fieldsContainer;
         container.innerHTML = '';
@@ -1000,7 +1028,9 @@
         fieldsContainer.innerHTML = '';
     }
 
-    // ----- EVENTOS UI -----
+    // ============================================================
+    // EVENTOS UI
+    // ============================================================
     parseBtn.addEventListener('click', () => {
         const raw = rawInput.value.trim();
         if (!raw) { showToast('Cole uma mensagem'); return; }
@@ -1054,7 +1084,7 @@
                 await updateDoc(doc(db, 'agendamentos', editingId), data);
                 showToast('Atualizado!');
             } else {
-                await addDoc(eventsCollection, data);
+                await addDoc(collection(db, 'agendamentos'), data);
                 showToast('Salvo!');
             }
             resetPreview();
@@ -1094,7 +1124,6 @@
 
     function generatePDFContent(startDate, endDate) {
         const filtered = getEventsInPeriod(startDate, endDate);
-        // Ordena por data
         filtered.sort((a, b) => a.data.localeCompare(b.data));
 
         const now = new Date();
@@ -1169,14 +1198,12 @@
             return;
         }
 
-        // Gera o conteúdo HTML para o PDF
         const contentHTML = generatePDFContent(start, end);
         const pdfElement = document.getElementById('pdfContent');
         pdfElement.innerHTML = contentHTML;
 
-        // Configuração do PDF
         const opt = {
-            margin:        [0.5, 0.5, 0.5, 0.5], // em polegadas
+            margin:        [0.5, 0.5, 0.5, 0.5],
             filename:     `relatorio_agendamentos_${start}_a_${end}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, letterRendering: true, useCORS: true, logging: false },
@@ -1195,7 +1222,6 @@
         }
     });
 
-    // Define datas padrão para o período (mês atual)
     function setDefaultPeriod() {
         const now = new Date();
         const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1207,9 +1233,11 @@
     }
     setDefaultPeriod();
 
-    // ----- FIREBASE LISTENER -----
+    // ============================================================
+    // FIREBASE LISTENER
+    // ============================================================
     function initFirebaseListener() {
-        const q = query(eventsCollection, orderBy('data'));
+        const q = query(collection(db, 'agendamentos'), orderBy('data'));
         unsubscribe = onSnapshot(q, (snapshot) => {
             const events = [];
             snapshot.forEach(doc => {
@@ -1231,14 +1259,16 @@
         });
     }
 
-    // ----- INICIALIZAÇÃO -----
+    // ============================================================
+    // INICIALIZAÇÃO
+    // ============================================================
     const now = new Date();
     currentDate = new Date(now.getFullYear(), now.getMonth(), 1);
     const todayStr = formatDateKey(now.getFullYear(), now.getMonth(), now.getDate());
     selectedDate = todayStr;
     initFirebaseListener();
 
-    console.log('App profissional com exportação PDF iniciado.');
+    console.log('✅ App com autenticação anônima e exportação PDF iniciado.');
 </script>
 </body>
 </html>
