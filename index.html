@@ -468,7 +468,7 @@
             .export-section input[type="date"] { width: 100%; }
         }
 
-        /* Elemento para captura do PDF (sempre visível, mas fora da tela) */
+        /* Elemento para captura do PDF */
         #pdfContent {
             position: absolute;
             left: -9999px;
@@ -482,19 +482,6 @@
             opacity: 0;
             pointer-events: none;
             transition: none;
-        }
-        /* Quando estiver gerando, tornamos visível */
-        #pdfContent.generating {
-            opacity: 1;
-            z-index: 9999;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            position: fixed;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            border-radius: 16px;
         }
     </style>
 </head>
@@ -574,17 +561,20 @@
 <!-- TOAST -->
 <div id="toast" class="toast"></div>
 
-<!-- ELEMENTO PARA PDF (será preenchido dinamicamente) -->
+<!-- ELEMENTO PARA PDF -->
 <div id="pdfContent"></div>
 
 <script type="module">
     // ============================================================
-    // IMPORTS FIREBASE + AUTH
+    // IMPORTS
     // ============================================================
     import { initializeApp } from 'firebase/app';
     import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
     import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
+    // ============================================================
+    // CONFIGURAÇÃO FIREBASE
+    // ============================================================
     const firebaseConfig = {
         apiKey: "AIzaSyDMwdtyx3zWHwCHtalq572E_FyrF4f-drM",
         authDomain: "corretorpro-84422.firebaseapp.com",
@@ -599,6 +589,10 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
+    // 🔥 DEFINIÇÃO DA COLEÇÃO (GLOBAL NO MÓDULO)
+    const eventsCollection = collection(db, 'agendamentos');
+
+    // Autenticação anônima
     signInAnonymously(auth)
         .then(() => console.log('✅ Autenticado anonimamente'))
         .catch((err) => console.warn('⚠️ Falha na autenticação anônima:', err));
@@ -1112,7 +1106,8 @@
             resetPreview();
             rawInput.value = '';
         } catch (err) {
-            showToast('Erro: ' + err.message);
+            showToast('Erro ao salvar: ' + err.message);
+            console.error(err);
         } finally {
             isSaving = false;
             saveBtn.disabled = false;
@@ -1135,11 +1130,10 @@
     });
 
     // ============================================================
-    // EXPORTAÇÃO PDF (CORRIGIDA)
+    // EXPORTAÇÃO PDF
     // ============================================================
     function generatePDFContent(startDate, endDate, events) {
-        const filtered = events || [];
-        const sorted = [...filtered].sort((a, b) => a.data.localeCompare(b.data));
+        const sorted = [...events].sort((a, b) => a.data.localeCompare(b.data));
 
         const now = new Date();
         const dateStr = now.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
@@ -1225,7 +1219,7 @@
         const contentHTML = generatePDFContent(start, end, filtered);
         pdfElement.innerHTML = contentHTML;
 
-        // Torna o elemento visível para captura (mas fora da tela)
+        // Torna o elemento visível para captura (fora da tela)
         pdfElement.style.position = 'absolute';
         pdfElement.style.left = '-9999px';
         pdfElement.style.top = '0';
@@ -1237,14 +1231,13 @@
         pdfElement.style.display = 'block';
         pdfElement.style.zIndex = '-1';
 
-        // Aguarda um tick para renderização
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         const opt = {
             margin:        [0.5, 0.5, 0.5, 0.5],
             filename:     `relatorio_agendamentos_${start}_a_${end}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, letterRendering: true, useCORS: true, logging: true },
+            html2canvas:  { scale: 2, letterRendering: true, useCORS: true, logging: false },
             jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
 
@@ -1262,7 +1255,7 @@
     });
 
     // ============================================================
-    // DEFINIR PERÍODO PADRÃO (MÊS ATUAL)
+    // PERÍODO PADRÃO
     // ============================================================
     function setDefaultPeriod() {
         const now = new Date();
@@ -1272,7 +1265,7 @@
         const end = formatDateKey(lastDay.getFullYear(), lastDay.getMonth(), lastDay.getDate());
         startDateInput.value = start;
         endDateInput.value = end;
-        console.log(`📅 Período padrão definido: ${start} a ${end}`);
+        console.log(`📅 Período padrão: ${start} a ${end}`);
     }
     setDefaultPeriod();
 
@@ -1312,7 +1305,7 @@
     selectedDate = todayStr;
     initFirebaseListener();
 
-    console.log('🚀 App profissional com PDF corrigido iniciado.');
+    console.log('🚀 App pronto!');
 </script>
 </body>
 </html>
