@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Agenda Inteligente + IA</title>
+    <title>Agenda Profissional</title>
     <script type="importmap">
         {
             "imports": {
@@ -13,102 +13,108 @@
         }
     </script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-        }
+        /* ===== RESET & BASE ===== */
+        * { margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         body {
-            background: #f0f4fa;
+            background: #f1f5f9;
+            color: #0a1e2f;
             padding: 16px;
-            color: #0b1a33;
         }
-        .container {
-            max-width: 720px;
-            margin: 0 auto;
-        }
-        /* Header */
+        .container { max-width: 720px; margin: 0 auto; }
+
+        /* ===== HEADER ===== */
         .header {
             display: flex;
-            align-items: center;
             justify-content: space-between;
+            align-items: center;
             margin-bottom: 24px;
             flex-wrap: wrap;
         }
         .header h1 {
             font-size: 1.8rem;
             font-weight: 700;
-            background: linear-gradient(135deg, #1a4b8c, #3b82f6);
+            background: linear-gradient(135deg, #1e3a5f, #2b5a8a);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-        }
-        .sync-status {
-            background: #e2e9f3;
-            padding: 4px 14px;
-            border-radius: 30px;
-            font-size: 0.75rem;
             display: flex;
             align-items: center;
             gap: 6px;
+        }
+        .header h1::before { content: '📋'; -webkit-text-fill-color: initial; }
+        .sync-status {
+            background: #e9edf2;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-size: 0.75rem;
             font-weight: 500;
+            color: #1e3a5f;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
+        .dot { width: 10px; height:10px; border-radius:50%; display:inline-block; }
+        .dot.online { background: #2ecc71; }
+        .dot.offline { background: #f39c12; }
+        .dot.error { background: #e74c3c; }
+        .btn-sync {
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: #1e3a5f;
+            padding: 0 4px;
         }
-        .dot.online { background: #22c55e; }
-        .dot.offline { background: #f59e0b; }
-        .dot.error { background: #ef4444; }
 
-        /* Cards */
+        /* ===== CARDS ===== */
         .card {
-            background: white;
+            background: #ffffff;
             border-radius: 24px;
             padding: 20px;
             margin-bottom: 24px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.05);
-            border: 1px solid #e9edf4;
+            box-shadow: 0 8px 30px rgba(0,20,40,0.06);
+            border: 1px solid #e2e8f0;
+            transition: box-shadow 0.2s;
         }
         .card-title {
-            font-weight: 600;
             font-size: 1.1rem;
-            color: #1e3a6f;
+            font-weight: 600;
+            color: #1e3a5f;
             margin-bottom: 16px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
         .badge {
-            background: #dbeafe;
-            color: #1e4b8c;
+            background: #dde7f5;
+            color: #1e3a5f;
             font-size: 0.7rem;
             padding: 2px 12px;
-            border-radius: 20px;
+            border-radius: 30px;
             font-weight: 500;
         }
 
-        /* Calendário */
+        /* ===== CALENDÁRIO ===== */
         .calendar-nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
         }
         .calendar-nav button {
             background: none;
             border: none;
-            font-size: 1.4rem;
-            color: #1a4b8c;
+            font-size: 1.3rem;
+            color: #1e3a5f;
             padding: 0 12px;
             cursor: pointer;
+            transition: 0.2s;
         }
+        .calendar-nav button:hover { color: #2b5a8a; }
         .month-year {
             font-weight: 600;
             font-size: 1.2rem;
+            color: #0a1e2f;
         }
         .calendar-grid {
             display: grid;
@@ -119,42 +125,45 @@
         .weekday {
             font-size: 0.7rem;
             font-weight: 600;
-            color: #6b7f99;
+            color: #6b7f93;
             padding: 6px 0;
         }
         .day {
             aspect-ratio: 1/1;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            border-radius: 12px;
+            border-radius: 14px;
             font-weight: 500;
             cursor: pointer;
             background: transparent;
             transition: 0.15s;
             position: relative;
+            font-size: 0.9rem;
         }
-        .day:hover { background: #e6edf6; }
-        .day.other-month { color: #b0c4de; }
-        .day.today { background: #dbeafe; font-weight: 700; }
+        .day:hover { background: #edf2f7; }
+        .day.other-month { color: #b8c9dc; }
+        .day.today { background: #e6edf6; font-weight: 700; }
         .day.has-event::after {
             content: '';
             width: 6px;
             height: 6px;
-            background: #3b82f6;
+            background: #2b5a8a;
             border-radius: 50%;
             position: absolute;
             bottom: 4px;
             left: 50%;
             transform: translateX(-50%);
         }
-        .day.selected { background: #3b82f6; color: white; }
+        .day.has-event.done::after { background: #2ecc71; }
+        .day.selected { background: #1e3a5f; color: white; }
         .day.selected.has-event::after { background: white; }
 
         /* Lista de eventos do dia */
         .day-events {
             margin-top: 16px;
-            border-top: 1px solid #e6edf6;
+            border-top: 1px solid #e2e8f0;
             padding-top: 16px;
         }
         .day-events .empty {
@@ -163,21 +172,37 @@
             padding: 12px 0;
         }
         .event-item {
-            background: #f8faff;
+            background: #f8fafc;
             border-radius: 16px;
             padding: 14px;
             margin-bottom: 10px;
-            border-left: 4px solid #3b82f6;
+            border-left: 4px solid #2b5a8a;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: 0.2s;
         }
+        .event-item.done { border-left-color: #2ecc71; background: #f0faf4; }
         .event-item .info {
             flex: 1;
             cursor: pointer;
         }
         .event-item .info .name {
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .event-item .info .name .status-badge {
+            font-size: 0.6rem;
+            background: #e2e8f0;
+            padding: 1px 10px;
+            border-radius: 30px;
+            color: #4a5b72;
+        }
+        .event-item .info .name .status-badge.done {
+            background: #2ecc71;
+            color: white;
         }
         .event-item .info .detail {
             font-size: 0.8rem;
@@ -196,14 +221,14 @@
             border-radius: 20px;
             transition: 0.2s;
         }
-        .event-item .actions button:hover { background: #e6edf6; }
+        .event-item .actions button:hover { background: #e2e8f0; }
 
-        /* Modal de detalhes */
+        /* ===== MODAL DE DETALHES (profissional) ===== */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.4);
-            backdrop-filter: blur(4px);
+            background: rgba(10,30,47,0.5);
+            backdrop-filter: blur(6px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -211,99 +236,138 @@
             padding: 20px;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.25s;
+            transition: opacity 0.3s;
         }
-        .modal-overlay.open {
-            opacity: 1;
-            pointer-events: auto;
-        }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
         .modal {
             background: white;
-            border-radius: 28px;
-            max-width: 500px;
+            border-radius: 32px;
+            max-width: 560px;
             width: 100%;
-            padding: 28px;
             max-height: 90vh;
             overflow-y: auto;
-            box-shadow: 0 24px 48px rgba(0,0,0,0.2);
+            padding: 32px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.15);
             transform: scale(0.95);
-            transition: transform 0.25s;
+            transition: transform 0.3s;
         }
-        .modal-overlay.open .modal {
-            transform: scale(1);
-        }
+        .modal-overlay.open .modal { transform: scale(1); }
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 16px;
         }
         .modal-header h2 {
-            font-size: 1.3rem;
-            color: #0b1a33;
+            font-size: 1.4rem;
+            color: #0a1e2f;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .modal-header .status-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 4px 14px;
+            border-radius: 30px;
+            background: #e2e8f0;
+            color: #4a5b72;
+        }
+        .modal-header .status-badge.done {
+            background: #2ecc71;
+            color: white;
         }
         .modal-close {
             background: none;
             border: none;
-            font-size: 1.6rem;
+            font-size: 1.8rem;
+            color: #6b7f93;
             cursor: pointer;
-            color: #6b7f99;
+            transition: 0.2s;
+        }
+        .modal-close:hover { color: #0a1e2f; }
+
+        .modal-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 20px;
         }
         .modal-field {
             display: flex;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f4fa;
+            flex-direction: column;
+            gap: 2px;
+            padding: 6px 0;
+            border-bottom: 1px solid #f1f5f9;
         }
         .modal-field .label {
+            font-size: 0.7rem;
             font-weight: 600;
-            width: 110px;
-            flex-shrink: 0;
-            color: #4a5b72;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #6b7f93;
         }
         .modal-field .value {
-            color: #0b1a33;
+            font-size: 0.95rem;
+            color: #0a1e2f;
+            font-weight: 500;
             word-break: break-word;
         }
-        .modal-field .value.empty {
-            color: #b0c4de;
-            font-style: italic;
-        }
+        .modal-field .value.empty { color: #b8c9dc; font-weight: 400; }
+        .modal-field.full { grid-column: 1 / -1; }
 
-        /* Formulário */
+        .modal-actions {
+            margin-top: 24px;
+            display: flex;
+            gap: 12px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+            flex: 1;
+            min-width: 120px;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary { background: #1e3a5f; color: white; }
+        .btn-primary:hover { background: #2b5a8a; }
+        .btn-success { background: #2ecc71; color: white; }
+        .btn-success:hover { background: #27ae60; }
+        .btn-secondary { background: #e2e8f0; color: #1e3a5f; }
+        .btn-secondary:hover { background: #d0d8e3; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ===== FORMULÁRIO DE ENTRADA ===== */
         textarea {
             width: 100%;
-            min-height: 130px;
+            min-height: 120px;
             padding: 14px;
-            border: 1px solid #dbe0e8;
+            border: 1px solid #d0d8e3;
             border-radius: 16px;
             font-size: 0.95rem;
             background: #fafcff;
             resize: vertical;
+            transition: 0.2s;
         }
         textarea:focus {
             outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+            border-color: #2b5a8a;
+            box-shadow: 0 0 0 3px rgba(43,90,138,0.12);
         }
-        .btn {
-            display: inline-block;
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 40px;
-            font-size: 0.95rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-            width: 100%;
-            text-align: center;
-        }
-        .btn:active { transform: scale(0.97); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-secondary { background: #e6edf6; color: #1a4b8c; }
-        .btn-success { background: #22c55e; }
-        .btn-danger { background: #ef4444; }
         .btn-group {
             display: flex;
             gap: 10px;
@@ -326,29 +390,29 @@
             font-size: 0.7rem;
             font-weight: 600;
             text-transform: uppercase;
-            color: #5a6f88;
+            color: #6b7f93;
         }
         .field input, .field textarea {
             padding: 8px 12px;
-            border: 1px solid #dbe0e8;
+            border: 1px solid #d0d8e3;
             border-radius: 10px;
             font-size: 0.9rem;
             background: #fafcff;
         }
         .field input:focus, .field textarea:focus {
             outline: none;
-            border-color: #3b82f6;
+            border-color: #2b5a8a;
         }
         .field-full { grid-column: 1 / -1; }
         .hidden { display: none !important; }
 
-        /* Toast */
+        /* ===== TOAST ===== */
         .toast {
             position: fixed;
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: #0b1a33;
+            background: #0a1e2f;
             color: white;
             padding: 12px 24px;
             border-radius: 40px;
@@ -361,28 +425,29 @@
         }
         .toast.show { opacity: 1; }
 
+        /* ===== RESPONSIVO ===== */
         @media (max-width: 500px) {
             .extracted-fields { grid-template-columns: 1fr; }
-            .header h1 { font-size: 1.4rem; }
+            .modal-body { grid-template-columns: 1fr; }
             .modal { padding: 20px; }
-            .modal-field .label { width: 80px; }
+            .header h1 { font-size: 1.4rem; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Header -->
+    <!-- HEADER -->
     <div class="header">
-        <h1>📅 Agenda+ IA</h1>
+        <h1>Agenda <span style="font-weight:300;color:#6b7f93; -webkit-text-fill-color:#6b7f93;">Profissional</span></h1>
         <div class="sync-status">
             <span class="dot online" id="syncDot"></span>
             <span id="syncLabel">Sincronizado</span>
-            <button id="forceSyncBtn" style="background:none;border:none;cursor:pointer;font-size:1rem;">🔄</button>
+            <button class="btn-sync" id="forceSyncBtn">🔄</button>
         </div>
     </div>
 
-    <!-- Calendário -->
+    <!-- CALENDÁRIO -->
     <div class="card">
         <div class="card-title">
             📆 Calendário
@@ -399,11 +464,11 @@
         </div>
     </div>
 
-    <!-- Novo agendamento -->
+    <!-- NOVO AGENDAMENTO -->
     <div class="card">
         <div class="card-title">✏️ Novo agendamento</div>
-        <textarea id="rawInput" placeholder="Cole a mensagem bagunçada...&#10;Ex: Data: 19/07&#10;Responsável: Paula&#10;Tema: Festa..."></textarea>
-        <button class="btn" id="parseBtn">🔍 Interpretar</button>
+        <textarea id="rawInput" placeholder="Cole a mensagem bagunçada...&#10;Ex: Data: 19/07&#10;Responsável: João&#10;Tema: Aniversário..."></textarea>
+        <button class="btn btn-primary" id="parseBtn">🔍 Interpretar</button>
         <div id="previewCard" class="hidden" style="margin-top:16px;">
             <div id="fieldsContainer" class="extracted-fields"></div>
             <div class="btn-group">
@@ -414,18 +479,23 @@
     </div>
 </div>
 
-<!-- Modal de detalhes -->
+<!-- MODAL DE DETALHES -->
 <div class="modal-overlay" id="detailModal">
     <div class="modal">
         <div class="modal-header">
-            <h2>📋 Detalhes do agendamento</h2>
+            <h2 id="modalTitle">📋 Detalhes</h2>
             <button class="modal-close" id="modalClose">✕</button>
         </div>
-        <div id="modalBody"></div>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-actions" id="modalActions">
+            <button class="btn btn-success" id="toggleDoneBtn">✅ Marcar como concluído</button>
+            <button class="btn btn-secondary" id="editFromModalBtn">✏️ Editar</button>
+            <button class="btn btn-danger" id="deleteFromModalBtn">🗑️ Excluir</button>
+        </div>
     </div>
 </div>
 
-<!-- Toast -->
+<!-- TOAST -->
 <div id="toast" class="toast"></div>
 
 <script type="module">
@@ -447,13 +517,14 @@
     const db = getFirestore(app);
     const eventsCollection = collection(db, 'agendamentos');
 
-    // ----- ESTADO GLOBAL -----
+    // ----- ESTADO -----
     let allEvents = [];
     let currentDate = new Date();
     let selectedDate = null;
     let editingId = null;
     let unsubscribe = null;
     let isSaving = false;
+    let currentModalId = null; // id do evento aberto no modal
 
     // DOM refs
     const calendarGrid = document.getElementById('calendarGrid');
@@ -474,7 +545,11 @@
     const forceSyncBtn = document.getElementById('forceSyncBtn');
     const detailModal = document.getElementById('detailModal');
     const modalBody = document.getElementById('modalBody');
+    const modalTitle = document.getElementById('modalTitle');
     const modalClose = document.getElementById('modalClose');
+    const toggleDoneBtn = document.getElementById('toggleDoneBtn');
+    const editFromModalBtn = document.getElementById('editFromModalBtn');
+    const deleteFromModalBtn = document.getElementById('deleteFromModalBtn');
 
     // ----- TOAST -----
     function showToast(msg, duration = 2500) {
@@ -491,7 +566,7 @@
         syncLabel.textContent = labels[state] || 'Sincronizado';
     }
 
-    // ----- FORMATAÇÃO DE DATA -----
+    // ----- FORMATAÇÃO -----
     function formatDateKey(year, month, day) {
         return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
@@ -503,24 +578,18 @@
         } catch { return dateStr; }
     }
 
-    // ----- INTERPRETAÇÃO DE DATA (mais robusta) -----
+    // ----- PARSE DE DATA -----
     function parseDateFromString(str) {
         str = str.trim();
         if (!str) return null;
-
-        // Tenta formatos: DD/MM/AAAA, DD/MM/AA, DD/MM
         const slashParts = str.split('/');
         if (slashParts.length >= 2) {
             let day = parseInt(slashParts[0]);
             let month = parseInt(slashParts[1]) - 1;
             let year = slashParts.length === 3 ? parseInt(slashParts[2]) : new Date().getFullYear();
             if (slashParts.length === 3 && year < 100) year += 2000;
-            if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                return { year, month, day };
-            }
+            if (!isNaN(day) && !isNaN(month) && !isNaN(year)) return { year, month, day };
         }
-
-        // Tenta "19 de julho" ou "19 de julho de 2026"
         const monthNames = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
         const regex = /(\d{1,2})\s+de\s+(\w+)(?:\s+de\s+(\d{4}))?/i;
         const match = str.match(regex);
@@ -533,165 +602,85 @@
                 return { year, month: monthIndex, day };
             }
         }
-
-        // Tenta ISO YYYY-MM-DD
         const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (iso) {
-            return { year: parseInt(iso[1]), month: parseInt(iso[2]) - 1, day: parseInt(iso[3]) };
-        }
-
+        if (iso) return { year: parseInt(iso[1]), month: parseInt(iso[2])-1, day: parseInt(iso[3]) };
         return null;
     }
 
     function normalizeDate(raw) {
         const parsed = parseDateFromString(raw);
-        if (parsed) {
-            return formatDateKey(parsed.year, parsed.month, parsed.day);
-        }
-        return null;
+        return parsed ? formatDateKey(parsed.year, parsed.month, parsed.day) : null;
     }
 
-    // ----- MAPEAMENTO DE PALAVRAS-CHAVE (abrangente) -----
+    // ----- KEYWORD MAP -----
     const KEYWORD_MAP = {
-        'data': 'data',
-        'data:': 'data',
-        'responsável': 'responsavel',
-        'responsavel': 'responsavel',
-        'resp': 'responsavel',
-        'celular': 'celular',
-        'cel': 'celular',
-        'telefone': 'celular',
-        'tema': 'tema',
-        'local': 'local',
-        'valor pago': 'valor_pago',
-        'valor': 'valor_pago',
-        'pagamento': 'valor_pago',
-        'observações': 'observacao',
-        'observacao': 'observacao',
-        'obs': 'obs',
-        'observação': 'observacao',
-        'valor restante': 'valor_restante',
-        'restante': 'valor_restante',
-        'pacote': 'pacote',
-        'pacote contratado': 'pacote',
-        'hora de início': 'hora_inicio',
-        'hora inicio': 'hora_inicio',
-        'hora': 'hora_inicio',
-        'início': 'hora_inicio',
-        'aniversariante': 'aniversariante',
-        'nome': 'aniversariante'
+        'data':'data','responsável':'responsavel','responsavel':'responsavel','resp':'responsavel',
+        'celular':'celular','cel':'celular','telefone':'celular',
+        'tema':'tema','local':'local','valor pago':'valor_pago','valor':'valor_pago','pagamento':'valor_pago',
+        'observações':'observacao','observacao':'observacao','obs':'obs','observação':'observacao',
+        'valor restante':'valor_restante','restante':'valor_restante',
+        'pacote':'pacote','pacote contratado':'pacote',
+        'hora de início':'hora_inicio','hora inicio':'hora_inicio','hora':'hora_inicio','início':'hora_inicio',
+        'aniversariante':'aniversariante','nome':'aniversariante'
     };
-
-    const DB_FIELDS = [
-        'data', 'responsavel', 'celular', 'tema', 'hora_inicio',
-        'local', 'valor_pago', 'pacote', 'observacao', 'valor_restante',
-        'aniversariante', 'obs'
-    ];
-
+    const DB_FIELDS = ['data','responsavel','celular','tema','hora_inicio','local','valor_pago','pacote','observacao','valor_restante','aniversariante','obs'];
     const FIELD_LABELS = {
-        data: 'Data',
-        responsavel: 'Responsável',
-        celular: 'Celular',
-        tema: 'Tema',
-        hora_inicio: 'Hora de início',
-        local: 'Local',
-        valor_pago: 'Valor pago',
-        pacote: 'Pacote',
-        observacao: 'Observação',
-        valor_restante: 'Valor restante',
-        aniversariante: 'Aniversariante',
-        obs: 'Obs.'
+        data:'Data', responsavel:'Responsável', celular:'Celular', tema:'Tema',
+        hora_inicio:'Hora de início', local:'Local', valor_pago:'Valor pago',
+        pacote:'Pacote', observacao:'Observação', valor_restante:'Valor restante',
+        aniversariante:'Aniversariante', obs:'Obs.'
+    };
+    // Ícones para cada campo
+    const FIELD_ICONS = {
+        data:'📅', responsavel:'👤', celular:'📱', tema:'🎯',
+        hora_inicio:'🕐', local:'📍', valor_pago:'💰',
+        pacote:'📦', observacao:'📝', valor_restante:'💳',
+        aniversariante:'🎂', obs:'📌'
     };
 
     function mapKey(rawKey) {
-        const lower = rawKey.toLowerCase().trim();
-        // Remove pontuação e espaços extras
-        const clean = lower.replace(/[^a-záéíóúàâêôãõç ]/g, '').trim();
-        // Tenta correspondência exata
+        const clean = rawKey.toLowerCase().replace(/[^a-záéíóúàâêôãõç ]/g,'').trim();
         if (KEYWORD_MAP[clean]) return KEYWORD_MAP[clean];
-        // Tenta correspondência parcial
-        for (let pattern in KEYWORD_MAP) {
-            if (clean.includes(pattern) || pattern.includes(clean)) {
-                return KEYWORD_MAP[pattern];
-            }
-        }
+        for (let p in KEYWORD_MAP) if (clean.includes(p) || p.includes(clean)) return KEYWORD_MAP[p];
         return null;
     }
 
-    // ----- PARSER PRINCIPAL -----
     function parseMessage(text) {
-        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
         const result = {};
-        let currentKey = null;
-        let currentValue = '';
-
+        let currentKey = null, currentValue = '';
         for (let line of lines) {
-            const colonIndex = line.indexOf(':');
-            if (colonIndex !== -1) {
-                if (currentKey) {
-                    result[currentKey] = currentValue.trim();
-                    currentKey = null;
-                    currentValue = '';
-                }
-                const key = line.substring(0, colonIndex).trim();
-                const value = line.substring(colonIndex + 1).trim();
-                const mappedKey = mapKey(key);
-                if (mappedKey) {
-                    if (mappedKey === 'observacao' || mappedKey === 'obs') {
-                        currentKey = mappedKey;
-                        currentValue = value;
-                    } else {
-                        // Se for data, tenta normalizar
-                        if (mappedKey === 'data') {
-                            const normalized = normalizeDate(value);
-                            if (normalized) {
-                                result[mappedKey] = normalized;
-                            } else {
-                                // Mantém o valor original
-                                result[mappedKey] = value;
-                            }
-                        } else {
-                            result[mappedKey] = value;
-                        }
+            const colon = line.indexOf(':');
+            if (colon !== -1) {
+                if (currentKey) { result[currentKey] = currentValue.trim(); currentKey = null; currentValue = ''; }
+                const key = line.substring(0, colon).trim();
+                const value = line.substring(colon+1).trim();
+                const mapped = mapKey(key);
+                if (mapped) {
+                    if (mapped === 'observacao' || mapped === 'obs') { currentKey = mapped; currentValue = value; }
+                    else {
+                        if (mapped === 'data') {
+                            const norm = normalizeDate(value);
+                            result[mapped] = norm || value;
+                        } else result[mapped] = value;
                     }
                 } else {
-                    // Chave não mapeada: acumula em observação
-                    if (currentKey) {
-                        currentValue += ' ' + line;
-                    } else {
-                        if (!result.observacao) result.observacao = '';
-                        result.observacao += ' ' + line;
-                    }
+                    if (currentKey) currentValue += ' ' + line;
+                    else { if (!result.observacao) result.observacao = ''; result.observacao += ' ' + line; }
                 }
             } else {
-                if (currentKey) {
-                    currentValue += ' ' + line;
-                } else {
-                    if (!result.observacao) result.observacao = '';
-                    result.observacao += ' ' + line;
-                }
+                if (currentKey) currentValue += ' ' + line;
+                else { if (!result.observacao) result.observacao = ''; result.observacao += ' ' + line; }
             }
         }
-        if (currentKey) {
-            result[currentKey] = currentValue.trim();
-        }
-
-        // Limpeza
-        for (let key in result) {
-            result[key] = result[key].trim();
-        }
-
-        // Se data não foi encontrada, tenta extrair de qualquer linha com números
+        if (currentKey) result[currentKey] = currentValue.trim();
+        for (let k in result) result[k] = result[k].trim();
         if (!result.data) {
             for (let line of lines) {
                 const parsed = parseDateFromString(line);
-                if (parsed) {
-                    result.data = formatDateKey(parsed.year, parsed.month, parsed.day);
-                    break;
-                }
+                if (parsed) { result.data = formatDateKey(parsed.year, parsed.month, parsed.day); break; }
             }
         }
-
         return result;
     }
 
@@ -705,18 +694,15 @@
 
         const eventsMap = {};
         events.forEach(ev => {
-            if (ev.data) {
-                const dateKey = ev.data.trim(); // já deve estar normalizado
-                if (/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
-                    if (!eventsMap[dateKey]) eventsMap[dateKey] = [];
-                    eventsMap[dateKey].push(ev);
-                }
+            if (ev.data && /^\d{4}-\d{2}-\d{2}$/.test(ev.data)) {
+                if (!eventsMap[ev.data]) eventsMap[ev.data] = [];
+                eventsMap[ev.data].push(ev);
             }
         });
 
         let html = '';
         const weekdays = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-        weekdays.forEach(w => { html += `<div class="weekday">${w}</div>`; });
+        weekdays.forEach(w => html += `<div class="weekday">${w}</div>`);
 
         const startOffset = firstDay;
         for (let i = daysInPrevMonth - startOffset + 1; i <= daysInPrevMonth; i++) {
@@ -726,11 +712,14 @@
         for (let d = 1; d <= daysInMonth; d++) {
             const dateKey = formatDateKey(year, month, d);
             const isToday = dateKey === todayStr;
-            const hasEvent = eventsMap[dateKey] && eventsMap[dateKey].length > 0;
+            const eventsOnDay = eventsMap[dateKey] || [];
+            const hasEvent = eventsOnDay.length > 0;
+            const allDone = hasEvent && eventsOnDay.every(e => e.concluido === true);
             const isSelected = dateKey === selectedDate;
             let classes = 'day';
             if (isToday) classes += ' today';
             if (hasEvent) classes += ' has-event';
+            if (allDone && hasEvent) classes += ' done';
             if (isSelected) classes += ' selected';
             html += `<div class="${classes}" data-date="${dateKey}">${d}</div>`;
         }
@@ -742,7 +731,7 @@
         }
 
         calendarGrid.innerHTML = html;
-        monthYear.textContent = new Date(year, month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        monthYear.textContent = new Date(year, month).toLocaleDateString('pt-BR', { month:'long', year:'numeric' });
 
         let count = 0;
         for (let d = 1; d <= daysInMonth; d++) {
@@ -754,48 +743,40 @@
         document.querySelectorAll('.day:not(.other-month)').forEach(el => {
             el.addEventListener('click', () => {
                 const date = el.dataset.date;
-                if (date) {
-                    selectedDate = date;
-                    renderCalendar(events, year, month);
-                    renderDayEvents(events, date);
-                }
+                if (date) { selectedDate = date; renderCalendar(events, year, month); renderDayEvents(events, date); }
             });
         });
 
-        if (selectedDate) {
-            renderDayEvents(events, selectedDate);
-        } else {
+        if (selectedDate) renderDayEvents(events, selectedDate);
+        else {
             const firstEventDate = Object.keys(eventsMap).sort()[0];
-            if (firstEventDate) {
-                selectedDate = firstEventDate;
-                renderCalendar(events, year, month);
-            } else {
-                selectedDate = todayStr;
-                renderCalendar(events, year, month);
-            }
+            selectedDate = firstEventDate || todayStr;
+            renderCalendar(events, year, month);
         }
     }
 
     // ----- RENDER EVENTOS DO DIA -----
     function renderDayEvents(events, dateKey) {
         const filtered = events.filter(ev => ev.data === dateKey);
-
         if (filtered.length === 0) {
             dayEventsDiv.innerHTML = `<div class="empty">📭 Nenhum agendamento para ${formatDisplayDate(dateKey)}</div>`;
             return;
         }
-
         let html = `<div style="margin-bottom:8px;font-weight:500;">📋 ${filtered.length} agendamento(s) em ${formatDisplayDate(dateKey)}</div>`;
         filtered.forEach(ev => {
             const nome = ev.aniversariante || 'Evento';
             const resp = ev.responsavel || '';
             const local = ev.local || '';
             const hora = ev.hora_inicio || '';
+            const done = ev.concluido === true;
             const id = ev.id;
             html += `
-                <div class="event-item">
+                <div class="event-item ${done ? 'done' : ''}">
                     <div class="info" data-id="${id}">
-                        <div class="name">🎉 ${nome}</div>
+                        <div class="name">
+                            ${done ? '✅' : '🎉'} ${nome}
+                            <span class="status-badge ${done ? 'done' : ''}">${done ? 'Concluído' : 'Pendente'}</span>
+                        </div>
                         <div class="detail">${resp} ${local ? '· ' + local : ''} ${hora ? '· ' + hora : ''}</div>
                     </div>
                     <div class="actions">
@@ -807,7 +788,6 @@
         });
         dayEventsDiv.innerHTML = html;
 
-        // Clique no info abre modal de detalhes
         document.querySelectorAll('.event-item .info').forEach(el => {
             el.addEventListener('click', () => {
                 const id = el.dataset.id;
@@ -816,7 +796,6 @@
             });
         });
 
-        // Editar
         document.querySelectorAll('.edit-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -826,7 +805,6 @@
             });
         });
 
-        // Excluir
         document.querySelectorAll('.delete-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -837,33 +815,83 @@
                     showToast('Excluído com sucesso');
                 } catch (err) {
                     showToast('Erro ao excluir: ' + err.message);
-                    console.error(err);
                 }
             });
         });
     }
 
-    // ----- MODAL DE DETALHES -----
+    // ----- MODAL DE DETALHES (layout profissional) -----
     function openDetailModal(ev) {
-        let html = '';
+        currentModalId = ev.id;
+        const done = ev.concluido === true;
+        // Título
+        modalTitle.innerHTML = `${done ? '✅' : '📋'} ${ev.aniversariante || 'Evento'}`;
+
+        let bodyHTML = '';
         DB_FIELDS.forEach(field => {
             const value = ev[field] || '';
             const label = FIELD_LABELS[field] || field;
-            const displayValue = value || '—';
-            html += `
-                <div class="modal-field">
-                    <div class="label">${label}</div>
-                    <div class="value ${value ? '' : 'empty'}">${displayValue}</div>
+            const icon = FIELD_ICONS[field] || '';
+            const display = value || '—';
+            const isEmpty = !value;
+            const full = field === 'observacao' || field === 'obs';
+            bodyHTML += `
+                <div class="modal-field ${full ? 'full' : ''}">
+                    <div class="label">${icon} ${label}</div>
+                    <div class="value ${isEmpty ? 'empty' : ''}">${display}</div>
                 </div>
             `;
         });
-        modalBody.innerHTML = html;
+        modalBody.innerHTML = bodyHTML;
+
+        // Atualiza botão de concluído
+        toggleDoneBtn.textContent = done ? '↩️ Reabrir' : '✅ Marcar como concluído';
+        toggleDoneBtn.className = `btn ${done ? 'btn-secondary' : 'btn-success'}`;
+
+        // Abre modal
         detailModal.classList.add('open');
     }
 
     function closeDetailModal() {
         detailModal.classList.remove('open');
+        currentModalId = null;
     }
+
+    // Ações do modal
+    toggleDoneBtn.addEventListener('click', async () => {
+        if (!currentModalId) return;
+        const ev = allEvents.find(e => e.id === currentModalId);
+        if (!ev) return;
+        const newStatus = ev.concluido !== true;
+        try {
+            await updateDoc(doc(db, 'agendamentos', currentModalId), { concluido: newStatus });
+            showToast(newStatus ? '✅ Marcado como concluído' : '↩️ Reaberto');
+            closeDetailModal();
+        } catch (err) {
+            showToast('Erro: ' + err.message);
+        }
+    });
+
+    editFromModalBtn.addEventListener('click', () => {
+        if (!currentModalId) return;
+        const ev = allEvents.find(e => e.id === currentModalId);
+        if (ev) {
+            closeDetailModal();
+            loadEventForEdit(ev);
+        }
+    });
+
+    deleteFromModalBtn.addEventListener('click', async () => {
+        if (!currentModalId) return;
+        if (!confirm('Excluir este agendamento?')) return;
+        try {
+            await deleteDoc(doc(db, 'agendamentos', currentModalId));
+            showToast('Excluído');
+            closeDetailModal();
+        } catch (err) {
+            showToast('Erro: ' + err.message);
+        }
+    });
 
     modalClose.addEventListener('click', closeDetailModal);
     detailModal.addEventListener('click', (e) => {
@@ -885,15 +913,13 @@
                 textarea.rows = 2;
                 textarea.value = value;
                 textarea.id = 'field-' + field;
-                div.appendChild(label);
-                div.appendChild(textarea);
+                div.appendChild(label); div.appendChild(textarea);
             } else {
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.value = value;
                 input.id = 'field-' + field;
-                div.appendChild(label);
-                div.appendChild(input);
+                div.appendChild(label); div.appendChild(input);
             }
             container.appendChild(div);
         });
@@ -922,7 +948,7 @@
     // ----- EVENTOS UI -----
     parseBtn.addEventListener('click', () => {
         const raw = rawInput.value.trim();
-        if (!raw) { showToast('Cole uma mensagem primeiro'); return; }
+        if (!raw) { showToast('Cole uma mensagem'); return; }
         const parsed = parseMessage(raw);
         const container = fieldsContainer;
         container.innerHTML = '';
@@ -937,15 +963,13 @@
                 textarea.rows = 2;
                 textarea.value = value;
                 textarea.id = 'field-' + field;
-                div.appendChild(label);
-                div.appendChild(textarea);
+                div.appendChild(label); div.appendChild(textarea);
             } else {
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.value = value;
                 input.id = 'field-' + field;
-                div.appendChild(label);
-                div.appendChild(input);
+                div.appendChild(label); div.appendChild(input);
             }
             container.appendChild(div);
         });
@@ -962,12 +986,12 @@
         const data = collectPreviewData();
         const hasData = DB_FIELDS.some(f => data[f] && data[f].trim() !== '');
         if (!hasData) { showToast('Preencha ao menos um campo'); return; }
-
-        // Normaliza data antes de salvar
         if (data.data) {
-            const normalized = normalizeDate(data.data);
-            if (normalized) data.data = normalized;
+            const norm = normalizeDate(data.data);
+            if (norm) data.data = norm;
         }
+        // Se não houver data, não salva
+        if (!data.data) { showToast('Data é obrigatória'); return; }
 
         isSaving = true;
         saveBtn.disabled = true;
@@ -983,7 +1007,6 @@
             rawInput.value = '';
         } catch (err) {
             showToast('Erro: ' + err.message);
-            console.error(err);
         } finally {
             isSaving = false;
             saveBtn.disabled = false;
@@ -999,13 +1022,9 @@
         renderCalendar(allEvents, currentDate.getFullYear(), currentDate.getMonth());
     });
 
-    // Forçar sincronização
     forceSyncBtn.addEventListener('click', () => {
         showToast('Recarregando...');
-        if (unsubscribe) {
-            unsubscribe();
-            unsubscribe = null;
-        }
+        if (unsubscribe) { unsubscribe(); unsubscribe = null; }
         initFirebaseListener();
     });
 
@@ -1026,12 +1045,8 @@
             console.error('Firebase error:', error);
             setSyncStatus('error');
             showToast('Erro de sincronização: ' + error.message);
-            // Tenta reconectar após 10s
             setTimeout(() => {
-                if (unsubscribe) {
-                    unsubscribe();
-                    unsubscribe = null;
-                }
+                if (unsubscribe) { unsubscribe(); unsubscribe = null; }
                 initFirebaseListener();
             }, 10000);
         });
@@ -1042,22 +1057,9 @@
     currentDate = new Date(now.getFullYear(), now.getMonth(), 1);
     const todayStr = formatDateKey(now.getFullYear(), now.getMonth(), now.getDate());
     selectedDate = todayStr;
-
     initFirebaseListener();
 
-    // Se houver erro de permissão, o usuário pode usar apenas local? Vamos fornecer fallback com IndexedDB?
-    // Mas como o Firebase está com erro de permissão, o app pode não salvar. Vou adicionar um aviso.
-    // O usuário deve ajustar as regras do Firebase para permitir leitura/escrita.
-    console.log('App iniciado. Para evitar erros de permissão, configure as regras do Firestore:');
-    console.log('rules_version = "2";');
-    console.log('service cloud.firestore {');
-    console.log('  match /databases/{database}/documents {');
-    console.log('    match /{document=**} {');
-    console.log('      allow read, write: if true;');
-    console.log('    }');
-    console.log('  }');
-    console.log('}');
-    console.log('Ou implemente autenticação.');
+    console.log('App profissional iniciado. Configure as regras do Firebase para permitir leitura/escrita.');
 </script>
 </body>
 </html>
