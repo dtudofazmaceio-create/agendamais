@@ -1,218 +1,134 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Agendamentos + Calendário</title>
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>Agendamentos + Calendário (Firebase)</title>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
+                "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"
+            }
+        }
+    </script>
+
     <style>
+        /* (mesmo estilo anterior, mantido) */
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         body {
-            background: #f0f2f5;
+            background: #f3f6fc;
             padding: 16px;
-            color: #1e293b;
+            color: #0b1a33;
         }
         .container {
-            max-width: 700px;
+            max-width: 720px;
             margin: 0 auto;
         }
-
-        /* Header */
         .header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
             flex-wrap: wrap;
-            gap: 8px;
         }
         .header h1 {
             font-size: 1.8rem;
             font-weight: 700;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            background: linear-gradient(135deg, #1a4b8c, #3b82f6);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
             display: flex;
             align-items: center;
-            gap: 6px;
-        }
-        .header-actions {
-            display: flex;
             gap: 8px;
         }
-        .header-actions button {
-            background: white;
-            border: none;
-            padding: 8px 16px;
+        .header h1 small {
+            font-size: 0.8rem;
+            font-weight: 400;
+            -webkit-text-fill-color: #6b7a8f;
+            background: none;
+        }
+        .sync-status {
+            background: #e6edf6;
+            padding: 6px 14px;
             border-radius: 30px;
+            font-size: 0.75rem;
+            color: #1a4b8c;
             font-weight: 500;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            cursor: pointer;
-            font-size: 0.9rem;
             display: flex;
             align-items: center;
             gap: 6px;
         }
-        .header-actions button:active {
-            transform: scale(0.96);
+        .sync-status .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
         }
-        .badge-sync {
-            background: #22c55e;
-            color: white;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            -webkit-text-fill-color: white;
-        }
-
-        /* Card genérico */
-        .card {
-            background: white;
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            border: 1px solid #eef2f6;
-            transition: all 0.2s;
-        }
-        .card h2 {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 14px;
-            color: #1e293b;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Input/Textarea */
-        textarea, input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid #d1d5db;
-            border-radius: 12px;
-            font-size: 1rem;
-            background: #fafcff;
-            transition: border 0.2s;
-        }
-        textarea:focus, input:focus {
-            outline: none;
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
-        }
-        textarea {
-            min-height: 150px;
-            resize: vertical;
-        }
-
-        /* Botões */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background: #6366f1;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 40px;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.15s;
-            width: 100%;
-            margin-top: 10px;
-        }
-        .btn:active {
-            transform: scale(0.97);
-        }
-        .btn-secondary {
-            background: #e9edf2;
-            color: #1e293b;
-        }
-        .btn-success {
+        .sync-status .dot.online {
             background: #22c55e;
         }
-        .btn-danger {
+        .sync-status .dot.offline {
+            background: #f59e0b;
+        }
+        .sync-status .dot.error {
             background: #ef4444;
         }
-        .btn-outline {
-            background: transparent;
-            border: 1.5px solid #d1d5db;
-            color: #1e293b;
+        .card {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 24px rgba(0, 20, 50, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.5);
         }
-        .btn-sm {
-            padding: 6px 16px;
-            font-size: 0.85rem;
-            width: auto;
-            margin-top: 0;
-        }
-
-        /* Preview fields */
-        .fields-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px 18px;
-        }
-        .field-group {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        .field-group.full-width {
-            grid-column: 1 / -1;
-        }
-        .field-group label {
-            font-size: 0.7rem;
+        .card-title {
+            font-size: 1.1rem;
             font-weight: 600;
-            text-transform: uppercase;
-            color: #64748b;
-            letter-spacing: 0.4px;
-        }
-        .field-group input, .field-group textarea {
-            padding: 8px 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 0.95rem;
-            background: #f8fafc;
-        }
-        .field-group textarea {
-            min-height: 60px;
-        }
-        .hidden {
-            display: none !important;
-        }
-
-        /* Calendário */
-        .calendar-header {
+            margin-bottom: 16px;
+            color: #1e3a6f;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
+            gap: 10px;
         }
-        .calendar-header .month-year {
-            font-size: 1.2rem;
-            font-weight: 600;
+        .card-title .badge {
+            background: #dbeafe;
+            color: #1e4b8c;
+            font-size: 0.7rem;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-weight: 500;
         }
         .calendar-nav {
             display: flex;
-            gap: 12px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
         }
         .calendar-nav button {
             background: none;
             border: none;
             font-size: 1.4rem;
             cursor: pointer;
-            padding: 0 8px;
-            color: #475569;
+            color: #1a4b8c;
+            padding: 4px 12px;
+            border-radius: 30px;
+            transition: 0.2s;
+        }
+        .calendar-nav button:hover {
+            background: #eef3fa;
+        }
+        .calendar-nav .month-year {
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: #0b1a33;
         }
         .calendar-grid {
             display: grid;
@@ -221,121 +137,204 @@
             text-align: center;
         }
         .calendar-grid .weekday {
+            font-size: 0.7rem;
             font-weight: 600;
-            font-size: 0.75rem;
-            color: #94a3b8;
-            padding: 6px 0;
+            color: #6b7a8f;
+            padding: 8px 0;
         }
         .calendar-grid .day {
-            padding: 10px 0;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             border-radius: 12px;
             font-size: 0.9rem;
+            font-weight: 500;
             cursor: pointer;
-            transition: 0.1s;
-            position: relative;
+            transition: 0.15s;
             background: transparent;
+            color: #1e3a6f;
+            position: relative;
         }
         .calendar-grid .day:hover {
-            background: #f1f5f9;
+            background: #eef3fa;
+        }
+        .calendar-grid .day.other-month {
+            color: #b0c4de;
         }
         .calendar-grid .day.today {
-            background: #e0e7ff;
-            font-weight: 600;
+            background: #dbeafe;
+            font-weight: 700;
         }
         .calendar-grid .day.has-event::after {
             content: '';
-            display: block;
             width: 6px;
             height: 6px;
-            background: #6366f1;
+            background: #3b82f6;
             border-radius: 50%;
-            margin: 3px auto 0;
+            position: absolute;
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
         }
         .calendar-grid .day.selected {
-            background: #6366f1;
+            background: #3b82f6;
             color: white;
         }
-        .calendar-grid .day.empty {
-            cursor: default;
+        .calendar-grid .day.selected.has-event::after {
+            background: white;
         }
-        .calendar-grid .day.empty:hover {
-            background: transparent;
-        }
-        .calendar-grid .day .event-count {
-            position: absolute;
-            top: -4px;
-            right: -4px;
-            background: #ef4444;
-            color: white;
-            font-size: 0.6rem;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-        }
-
-        /* Lista de agendamentos do dia */
         .day-events {
             margin-top: 16px;
+            border-top: 1px solid #e6edf6;
+            padding-top: 16px;
         }
-        .day-events .event-item {
-            background: #f8fafc;
-            border-radius: 12px;
-            padding: 12px 16px;
+        .day-events .empty {
+            color: #8a9bb0;
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 12px 0;
+        }
+        .event-item {
+            background: #f8faff;
+            border-radius: 16px;
+            padding: 14px;
             margin-bottom: 10px;
-            border-left: 4px solid #6366f1;
+            border-left: 4px solid #3b82f6;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
         }
-        .day-events .event-item .info {
-            display: flex;
-            flex-direction: column;
+        .event-item .info {
+            flex: 1;
+            min-width: 150px;
         }
-        .day-events .event-item .info .title {
+        .event-item .info .name {
             font-weight: 600;
+            font-size: 1rem;
         }
-        .day-events .event-item .info .sub {
-            font-size: 0.85rem;
-            color: #64748b;
+        .event-item .info .detail {
+            font-size: 0.8rem;
+            color: #4a5b72;
+            margin-top: 2px;
         }
-        .day-events .event-item .actions {
+        .event-item .actions {
             display: flex;
-            gap: 6px;
+            gap: 8px;
         }
-        .day-events .event-item .actions button {
-            background: transparent;
+        .event-item .actions button {
+            background: none;
             border: none;
             font-size: 1.1rem;
             cursor: pointer;
             padding: 4px 8px;
-            border-radius: 8px;
+            border-radius: 20px;
+            transition: 0.2s;
         }
-        .day-events .event-item .actions button:hover {
-            background: #e9edf2;
+        .event-item .actions button:hover {
+            background: #e6edf6;
         }
-        .vazio {
-            color: #94a3b8;
-            text-align: center;
-            padding: 20px 0;
+        textarea {
+            width: 100%;
+            min-height: 140px;
+            padding: 14px;
+            border: 1px solid #dbe0e8;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            background: #fafcff;
+            resize: vertical;
+            transition: border 0.2s;
         }
-
-        /* Toast */
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #0f172a;
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+        .btn {
+            display: inline-block;
+            background: #3b82f6;
             color: white;
-            padding: 12px 28px;
+            border: none;
+            padding: 12px 24px;
             border-radius: 40px;
             font-size: 0.95rem;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+            text-align: center;
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .btn-secondary {
+            background: #e6edf6;
+            color: #1a4b8c;
+        }
+        .btn-danger {
+            background: #ef4444;
+        }
+        .btn-success {
+            background: #22c55e;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .btn-group .btn {
+            flex: 1;
+        }
+        .extracted-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 16px;
+            margin: 16px 0;
+        }
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .field label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #5a6f88;
+            letter-spacing: 0.3px;
+        }
+        .field input,
+        .field textarea {
+            padding: 8px 12px;
+            border: 1px solid #dbe0e8;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            background: #fafcff;
+        }
+        .field input:focus,
+        .field textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        .field-full {
+            grid-column: 1 / -1;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0b1a33;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
             opacity: 0;
             transition: opacity 0.3s;
             pointer-events: none;
@@ -344,222 +343,164 @@
         .toast.show {
             opacity: 1;
         }
-
-        /* Responsivo */
         @media (max-width: 500px) {
-            .fields-grid {
+            .extracted-fields {
                 grid-template-columns: 1fr;
             }
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
+            .header h1 {
+                font-size: 1.4rem;
             }
-            .header-actions {
-                width: 100%;
-                justify-content: flex-start;
-                flex-wrap: wrap;
+            .sync-status {
+                font-size: 0.65rem;
+                padding: 4px 10px;
             }
+        }
+        .btn-sync {
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-sync:hover {
+            background: #7c3aed;
+        }
+        .flex-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <!-- Header -->
-    <div class="header">
-        <h1>📅 Agenda+</h1>
-        <div class="header-actions">
-            <button id="syncNowBtn" title="Sincronizar agora">🔄 Sincronizar</button>
-            <button id="addNewBtn">➕ Novo</button>
-        </div>
-    </div>
-
-    <!-- Área de entrada (mensagem) -->
-    <div class="card" id="inputCard">
-        <h2>📥 Colar mensagem</h2>
-        <textarea id="rawInput" placeholder="Cole aqui a mensagem bagunçada do WhatsApp...&#10;Ex:&#10;Data: 31/07/26&#10;Responsável: Paula Ávila&#10;Tema: Confeitaria da Minnie..."></textarea>
-        <button class="btn" id="parseBtn">🔍 Interpretar</button>
-    </div>
-
-    <!-- Pré-visualização e edição -->
-    <div class="card hidden" id="previewCard">
-        <h2>✏️ Revisar dados</h2>
-        <div id="fieldsContainer" class="fields-grid"></div>
-        <div style="display: flex; gap: 10px; margin-top: 12px;">
-            <button class="btn btn-success" id="saveBtn">💾 Salvar</button>
-            <button class="btn btn-secondary" id="cancelPreviewBtn">Cancelar</button>
-        </div>
-    </div>
-
-    <!-- Calendário -->
-    <div class="card">
-        <div class="calendar-header">
-            <span class="month-year" id="monthYear">Janeiro 2025</span>
-            <div class="calendar-nav">
-                <button id="prevMonth">◀</button>
-                <button id="nextMonth">▶</button>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>📅 Agenda<span style="-webkit-text-fill-color: #1a4b8c;">+</span> <small>IA</small></h1>
+            <div class="flex-row">
+                <div class="sync-status" id="syncStatus">
+                    <span class="dot online" id="syncDot"></span>
+                    <span id="syncLabel">Sincronizado</span>
+                </div>
+                <button class="btn-sync" id="forceSyncBtn">🔄</button>
             </div>
         </div>
-        <div class="calendar-grid" id="calendarGrid"></div>
-        <div class="day-events" id="dayEvents">
-            <div class="vazio">Selecione um dia para ver os agendamentos</div>
+
+        <!-- CALENDÁRIO -->
+        <div class="card">
+            <div class="card-title">
+                📆 Calendário
+                <span class="badge" id="eventCount">0 eventos</span>
+            </div>
+            <div class="calendar-nav">
+                <button id="prevMonth">◀</button>
+                <span class="month-year" id="monthYear">Maio 2026</span>
+                <button id="nextMonth">▶</button>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+            <div class="day-events" id="dayEvents">
+                <div class="empty">Selecione um dia para ver os agendamentos</div>
+            </div>
+        </div>
+
+        <!-- ADICIONAR NOVO -->
+        <div class="card">
+            <div class="card-title">✏️ Novo agendamento</div>
+            <textarea id="rawInput" placeholder="Cole a mensagem bagunçada do WhatsApp...&#10;Ex:&#10;Data: 31/07/26&#10;Responsável: Paula Ávila&#10;..."></textarea>
+            <button class="btn" id="parseBtn">🔍 Interpretar</button>
+
+            <!-- Preview (oculto) -->
+            <div id="previewCard" class="hidden" style="margin-top:16px;">
+                <div id="fieldsContainer" class="extracted-fields"></div>
+                <div class="btn-group">
+                    <button class="btn btn-success" id="saveBtn">💾 Salvar</button>
+                    <button class="btn btn-secondary" id="cancelPreviewBtn">Cancelar</button>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<div id="toast" class="toast"></div>
+    <!-- TOAST -->
+    <div id="toast" class="toast"></div>
 
-<script>
-    (function() {
-        'use strict';
+    <!-- ============================================================ -->
+    <!-- JAVASCRIPT -->
+    <script type="module">
+        // ----- IMPORTS FIREBASE -----
+        import { initializeApp } from 'firebase/app';
+        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy, getDocs } from 'firebase/firestore';
 
-        // ---------- FIREBASE CONFIG (SUBSTITUA) ----------
         const firebaseConfig = {
-            apiKey: "SUA_API_KEY",
-            authDomain: "SEU_PROJETO.firebaseapp.com",
-            projectId: "SEU_PROJETO",
-            storageBucket: "SEU_PROJETO.appspot.com",
-            messagingSenderId: "SEU_SENDER_ID",
-            appId: "SEU_APP_ID"
+            apiKey: "AIzaSyDMwdtyx3zWHwCHtalq572E_FyrF4f-drM",
+            authDomain: "corretorpro-84422.firebaseapp.com",
+            projectId: "corretorpro-84422",
+            storageBucket: "corretorpro-84422.firebasestorage.app",
+            messagingSenderId: "577827555644",
+            appId: "1:577827555644:web:6394517f3ba8a8230ab639",
+            measurementId: "G-YWXW1KFCW1"
         };
 
-        firebase.initializeApp(firebaseConfig);
-        const dbFirestore = firebase.firestore();
-        // Para desenvolvimento local, pode desabilitar a validação SSL se necessário (não recomendado)
-        // dbFirestore.settings({ experimentalForceLongPolling: true }); // se estiver em ambiente restrito
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const eventsCollection = collection(db, 'agendamentos');
 
-        // ---------- INDEXEDDB ----------
-        const DB_NAME = 'AgendamentosDB';
-        const STORE_NAME = 'agendamentos';
-        let localDB = null;
+        // ----- ESTADO -----
+        let allEvents = [];
+        let currentDate = new Date();
+        let selectedDate = null;
+        let editingId = null;
+        let unsubscribe = null; // para o snapshot
 
-        function openLocalDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, 2);
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => {
-                    localDB = request.result;
-                    resolve(localDB);
-                };
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
-                        store.createIndex('data', 'data', { unique: false });
-                    } else {
-                        // Upgrade para versão 2: garantir que o índice exista
-                        const store = event.target.transaction.objectStore(STORE_NAME);
-                        if (!store.indexNames.contains('data')) {
-                            store.createIndex('data', 'data', { unique: false });
-                        }
-                    }
-                };
-            });
+        // DOM refs
+        const calendarGrid = document.getElementById('calendarGrid');
+        const monthYear = document.getElementById('monthYear');
+        const dayEventsDiv = document.getElementById('dayEvents');
+        const rawInput = document.getElementById('rawInput');
+        const parseBtn = document.getElementById('parseBtn');
+        const previewCard = document.getElementById('previewCard');
+        const fieldsContainer = document.getElementById('fieldsContainer');
+        const saveBtn = document.getElementById('saveBtn');
+        const cancelPreviewBtn = document.getElementById('cancelPreviewBtn');
+        const prevMonthBtn = document.getElementById('prevMonth');
+        const nextMonthBtn = document.getElementById('nextMonth');
+        const toast = document.getElementById('toast');
+        const syncDot = document.getElementById('syncDot');
+        const syncLabel = document.getElementById('syncLabel');
+        const eventCount = document.getElementById('eventCount');
+        const forceSyncBtn = document.getElementById('forceSyncBtn');
+
+        // ----- TOAST -----
+        function showToast(msg, duration = 2500) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => toast.classList.remove('show'), duration);
         }
 
-        function localSave(agendamento) {
-            return new Promise((resolve, reject) => {
-                const transaction = localDB.transaction([STORE_NAME], 'readwrite');
-                const store = transaction.objectStore(STORE_NAME);
-                // Se tiver id, faz update; senão add
-                let request;
-                if (agendamento.id) {
-                    request = store.put(agendamento);
-                } else {
-                    request = store.add(agendamento);
-                }
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
+        // ----- SYNC STATUS -----
+        function setSyncStatus(state) {
+            // state: 'online', 'offline', 'error'
+            syncDot.className = 'dot ' + state;
+            if (state === 'online') syncLabel.textContent = 'Sincronizado';
+            else if (state === 'offline') syncLabel.textContent = 'Offline';
+            else if (state === 'error') syncLabel.textContent = 'Erro';
         }
 
-        function localGetAll() {
-            return new Promise((resolve, reject) => {
-                const transaction = localDB.transaction([STORE_NAME], 'readonly');
-                const store = transaction.objectStore(STORE_NAME);
-                const request = store.getAll();
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
+        // ----- FORMATAÇÃO -----
+        function formatDateKey(year, month, day) {
+            return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         }
 
-        function localDelete(id) {
-            return new Promise((resolve, reject) => {
-                const transaction = localDB.transaction([STORE_NAME], 'readwrite');
-                const store = transaction.objectStore(STORE_NAME);
-                const request = store.delete(id);
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
+        function formatDisplayDate(dateStr) {
+            const d = new Date(dateStr + 'T00:00:00');
+            return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
         }
 
-        function localClear() {
-            return new Promise((resolve, reject) => {
-                const transaction = localDB.transaction([STORE_NAME], 'readwrite');
-                const store = transaction.objectStore(STORE_NAME);
-                const request = store.clear();
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
-        }
-
-        // ---------- FIREBASE CRUD ----------
-        const COLLECTION = 'agendamentos';
-
-        function firebaseSave(agendamento) {
-            // Remove o id local se existir (Firestore usa id próprio)
-            const data = { ...agendamento };
-            delete data.id;
-            // Se tiver um campo 'firestoreId', usamos para atualizar
-            if (agendamento.firestoreId) {
-                return dbFirestore.collection(COLLECTION).doc(agendamento.firestoreId).set(data);
-            } else {
-                return dbFirestore.collection(COLLECTION).add(data);
-            }
-        }
-
-        function firebaseDelete(firestoreId) {
-            return dbFirestore.collection(COLLECTION).doc(firestoreId).delete();
-        }
-
-        function firebaseGetAll() {
-            return dbFirestore.collection(COLLECTION).get();
-        }
-
-        // ---------- SINCRONIZAÇÃO ----------
-        async function syncFromFirebase() {
-            try {
-                const snapshot = await firebaseGetAll();
-                // Limpa local
-                await localClear();
-                const items = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    data.firestoreId = doc.id;
-                    // Não podemos ter id autoincrement, então removemos se existir
-                    delete data.id;
-                    items.push(data);
-                });
-                // Salva cada um localmente
-                for (let item of items) {
-                    await localSave(item);
-                }
-                showToast('Sincronizado com a nuvem ✅');
-                return items;
-            } catch (e) {
-                console.error('Erro ao sincronizar:', e);
-                showToast('Erro na sincronização. Verifique sua internet.');
-                throw e;
-            }
-        }
-
-        // Função para forçar sincronização (manual)
-        async function syncAll() {
-            await syncFromFirebase();
-            await refreshCalendarAndList();
-        }
-
-        // ---------- Mapeamento de campos ----------
+        // ----- MAPEAMENTO DE CAMPOS (igual) -----
         const FIELD_MAP = {
             'data': 'data',
             'responsável': 'responsavel',
@@ -576,13 +517,11 @@
             'obs.': 'obs',
             'obs': 'obs'
         };
-
         const DB_FIELDS = [
             'data', 'responsavel', 'celular', 'tema', 'hora_inicio',
             'local', 'valor_pago', 'pacote', 'observacao', 'valor_restante',
             'aniversariante', 'obs'
         ];
-
         const FIELD_LABELS = {
             data: 'Data',
             responsavel: 'Responsável',
@@ -598,7 +537,27 @@
             obs: 'Observações extras'
         };
 
-        // ---------- PARSING ----------
+        function mapKey(rawKey) {
+            let key = rawKey.toLowerCase().replace(/[^a-záéíóúàâêôãõç ]/g, '').trim();
+            if (FIELD_MAP[key]) return FIELD_MAP[key];
+            for (let pattern in FIELD_MAP) {
+                if (key.includes(pattern) || pattern.includes(key)) return FIELD_MAP[pattern];
+            }
+            if (key.includes('data')) return 'data';
+            if (key.includes('respons') || key.includes('resp')) return 'responsavel';
+            if (key.includes('cel') || key.includes('telefone')) return 'celular';
+            if (key.includes('tema')) return 'tema';
+            if (key.includes('hora')) return 'hora_inicio';
+            if (key.includes('local')) return 'local';
+            if (key.includes('valor pago')) return 'valor_pago';
+            if (key.includes('pacote')) return 'pacote';
+            if (key.includes('observa')) return 'observacao';
+            if (key.includes('restante')) return 'valor_restante';
+            if (key.includes('anivers') || key.includes('aniversariante')) return 'aniversariante';
+            if (key.includes('obs')) return 'obs';
+            return null;
+        }
+
         function parseMessage(text) {
             const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
             const result = {};
@@ -649,186 +608,182 @@
             return result;
         }
 
-        function mapKey(rawKey) {
-            let key = rawKey.toLowerCase().replace(/[^a-záéíóúàâêôãõç ]/g, '').trim();
-            if (FIELD_MAP[key]) return FIELD_MAP[key];
-            for (let pattern in FIELD_MAP) {
-                if (key.includes(pattern) || pattern.includes(key)) {
-                    return FIELD_MAP[pattern];
-                }
-            }
-            if (key.includes('data')) return 'data';
-            if (key.includes('respons') || key.includes('resp')) return 'responsavel';
-            if (key.includes('cel') || key.includes('telefone')) return 'celular';
-            if (key.includes('tema')) return 'tema';
-            if (key.includes('hora')) return 'hora_inicio';
-            if (key.includes('local')) return 'local';
-            if (key.includes('valor pago')) return 'valor_pago';
-            if (key.includes('pacote')) return 'pacote';
-            if (key.includes('observa')) return 'observacao';
-            if (key.includes('restante')) return 'valor_restante';
-            if (key.includes('anivers') || key.includes('aniversariante')) return 'aniversariante';
-            if (key.includes('obs')) return 'obs';
-            return null;
-        }
-
-        // ---------- CALENDÁRIO ----------
-        let currentDate = new Date(); // mês atual
-        let selectedDate = null; // data selecionada (string 'YYYY-MM-DD')
-        let allEvents = []; // array de agendamentos
-
-        function formatDateKey(year, month, day) {
-            return `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-        }
-
-        function getEventsForDate(dateKey) {
-            return allEvents.filter(e => e.data && e.data.trim() !== '' && formatDateFromString(e.data) === dateKey);
-        }
-
-        function formatDateFromString(dateStr) {
-            // tenta interpretar dd/mm/aa ou dd/mm/yyyy
-            const parts = dateStr.split('/');
-            if (parts.length === 3) {
-                let day = parseInt(parts[0]);
-                let month = parseInt(parts[1]) - 1;
-                let year = parseInt(parts[2]);
-                if (year < 100) year += 2000;
-                return formatDateKey(year, month, day);
-            }
-            return null;
-        }
-
-        function renderCalendar(year, month) {
-            const grid = document.getElementById('calendarGrid');
-            const monthYear = document.getElementById('monthYear');
-            const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-            monthYear.textContent = `${months[month]} ${year}`;
-
-            const firstDay = new Date(year, month, 1).getDay(); // 0=domingo
+        // ----- RENDER CALENDÁRIO -----
+        function renderCalendar(events, year, month) {
+            const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const daysInPrevMonth = new Date(year, month, 0).getDate();
             const today = new Date();
-            const todayKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
+            const todayStr = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
+
+            const eventsMap = {};
+            events.forEach(ev => {
+                if (ev.data) {
+                    const d = ev.data.trim();
+                    let dateKey = null;
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+                        dateKey = d;
+                    } else {
+                        const parts = d.split('/');
+                        if (parts.length === 3) {
+                            let day = parseInt(parts[0]);
+                            let monthNum = parseInt(parts[1]) - 1;
+                            let yearNum = parseInt(parts[2]);
+                            if (yearNum < 100) yearNum += 2000;
+                            if (!isNaN(day) && !isNaN(monthNum) && !isNaN(yearNum)) {
+                                dateKey = formatDateKey(yearNum, monthNum, day);
+                            }
+                        }
+                    }
+                    if (dateKey) {
+                        if (!eventsMap[dateKey]) eventsMap[dateKey] = [];
+                        eventsMap[dateKey].push(ev);
+                    }
+                }
+            });
 
             let html = '';
-            const weekdays = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-            weekdays.forEach(d => html += `<div class="weekday">${d}</div>`);
+            const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            weekdays.forEach(w => {
+                html += `<div class="weekday">${w}</div>`;
+            });
 
-            // Dias vazios antes do primeiro dia
-            for (let i = 0; i < firstDay; i++) {
-                html += `<div class="day empty"></div>`;
+            const startOffset = firstDay;
+            for (let i = daysInPrevMonth - startOffset + 1; i <= daysInPrevMonth; i++) {
+                html += `<div class="day other-month">${i}</div>`;
             }
 
             for (let d = 1; d <= daysInMonth; d++) {
                 const dateKey = formatDateKey(year, month, d);
-                const events = getEventsForDate(dateKey);
-                const hasEvent = events.length > 0;
-                const isToday = (dateKey === todayKey);
-                const isSelected = (dateKey === selectedDate);
+                const isToday = dateKey === todayStr;
+                const hasEvent = eventsMap[dateKey] && eventsMap[dateKey].length > 0;
+                const isSelected = dateKey === selectedDate;
                 let classes = 'day';
                 if (isToday) classes += ' today';
                 if (hasEvent) classes += ' has-event';
                 if (isSelected) classes += ' selected';
-                html += `<div class="${classes}" data-date="${dateKey}">${d}`;
-                if (hasEvent) {
-                    html += `<span class="event-count">${events.length}</span>`;
-                }
-                html += `</div>`;
+                html += `<div class="${classes}" data-date="${dateKey}">${d}</div>`;
             }
 
-            grid.innerHTML = html;
+            const totalCells = startOffset + daysInMonth;
+            const remaining = (7 - (totalCells % 7)) % 7;
+            for (let d = 1; d <= remaining; d++) {
+                html += `<div class="day other-month">${d}</div>`;
+            }
 
-            // Event listeners nos dias
-            document.querySelectorAll('.day:not(.empty)').forEach(el => {
-                el.addEventListener('click', function() {
-                    const dateKey = this.dataset.date;
-                    selectedDate = dateKey;
-                    renderCalendar(year, month); // re-render para atualizar seleção
-                    renderDayEvents(dateKey);
+            calendarGrid.innerHTML = html;
+            monthYear.textContent = new Date(year, month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+            let count = 0;
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateKey = formatDateKey(year, month, d);
+                if (eventsMap[dateKey]) count += eventsMap[dateKey].length;
+            }
+            eventCount.textContent = count + ' evento' + (count !== 1 ? 's' : '');
+
+            document.querySelectorAll('.day:not(.other-month)').forEach(el => {
+                el.addEventListener('click', () => {
+                    const date = el.dataset.date;
+                    if (date) {
+                        selectedDate = date;
+                        renderCalendar(events, year, month);
+                        renderDayEvents(events, date);
+                    }
                 });
             });
 
-            // Se houver data selecionada, mostrar eventos
             if (selectedDate) {
-                renderDayEvents(selectedDate);
+                renderDayEvents(events, selectedDate);
             } else {
-                document.getElementById('dayEvents').innerHTML = `<div class="vazio">Selecione um dia para ver os agendamentos</div>`;
+                const firstEventDate = Object.keys(eventsMap).sort()[0];
+                if (firstEventDate) {
+                    selectedDate = firstEventDate;
+                    renderCalendar(events, year, month);
+                } else {
+                    selectedDate = todayStr;
+                    renderCalendar(events, year, month);
+                }
             }
         }
 
-        function renderDayEvents(dateKey) {
-            const container = document.getElementById('dayEvents');
-            const events = getEventsForDate(dateKey);
-            if (events.length === 0) {
-                container.innerHTML = `<div class="vazio">Nenhum agendamento para este dia</div>`;
+        // ----- RENDER EVENTOS DO DIA -----
+        function renderDayEvents(events, dateKey) {
+            const filtered = events.filter(ev => {
+                if (!ev.data) return false;
+                const d = ev.data.trim();
+                if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d === dateKey;
+                const parts = d.split('/');
+                if (parts.length === 3) {
+                    let day = parseInt(parts[0]);
+                    let monthNum = parseInt(parts[1]) - 1;
+                    let yearNum = parseInt(parts[2]);
+                    if (yearNum < 100) yearNum += 2000;
+                    if (!isNaN(day) && !isNaN(monthNum) && !isNaN(yearNum)) {
+                        return formatDateKey(yearNum, monthNum, day) === dateKey;
+                    }
+                }
+                return false;
+            });
+
+            if (filtered.length === 0) {
+                dayEventsDiv.innerHTML = `<div class="empty">📭 Nenhum agendamento para ${formatDisplayDate(dateKey)}</div>`;
                 return;
             }
-            let html = '';
-            events.forEach(ev => {
-                const titulo = ev.aniversariante || 'Evento sem nome';
-                const responsavel = ev.responsavel || '—';
+
+            let html = `<div style="margin-bottom:8px;font-weight:500;">📋 ${filtered.length} agendamento(s) em ${formatDisplayDate(dateKey)}</div>`;
+            filtered.forEach(ev => {
+                const nome = ev.aniversariante || 'Evento';
+                const resp = ev.responsavel || '';
+                const local = ev.local || '';
                 const hora = ev.hora_inicio || '';
-                const id = ev.firestoreId || ev.id;
+                const id = ev.id;
                 html += `
                     <div class="event-item">
                         <div class="info">
-                            <span class="title">🎉 ${titulo}</span>
-                            <span class="sub">👤 ${responsavel} ${hora ? '⏰ '+hora : ''}</span>
+                            <div class="name">🎉 ${nome}</div>
+                            <div class="detail">${resp} ${local ? '· ' + local : ''} ${hora ? '· ' + hora : ''}</div>
                         </div>
                         <div class="actions">
-                            <button onclick="editEvent('${id}')" title="Editar">✏️</button>
-                            <button onclick="deleteEvent('${id}')" title="Excluir">🗑️</button>
+                            <button data-id="${id}" class="edit-btn" title="Editar">✏️</button>
+                            <button data-id="${id}" class="delete-btn" title="Excluir">🗑️</button>
                         </div>
                     </div>
                 `;
             });
-            container.innerHTML = html;
+            dayEventsDiv.innerHTML = html;
+
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.id;
+                    const ev = allEvents.find(e => e.id === id);
+                    if (ev) loadEventForEdit(ev);
+                });
+            });
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const id = btn.dataset.id;
+                    if (confirm('Excluir este agendamento?')) {
+                        try {
+                            await deleteDoc(doc(db, 'agendamentos', id));
+                            showToast('Excluído com sucesso');
+                            // snapshot atualiza
+                        } catch (e) {
+                            showToast('Erro ao excluir: ' + e.message);
+                            console.error(e);
+                        }
+                    }
+                });
+            });
         }
 
-        // Funções globais para os botões de evento
-        window.editEvent = async function(firestoreId) {
-            // Encontra o evento na lista
-            const ev = allEvents.find(e => e.firestoreId === firestoreId);
-            if (!ev) return showToast('Evento não encontrado');
-            // Preenche o preview
-            showPreview(ev);
-            // Marca como edição
-            const saveBtn = document.getElementById('saveBtn');
-            saveBtn.textContent = '💾 Atualizar';
-            saveBtn.dataset.editId = firestoreId;
-        };
-
-        window.deleteEvent = async function(firestoreId) {
-            if (!confirm('Excluir este agendamento?')) return;
-            try {
-                await firebaseDelete(firestoreId);
-                await localDeleteByFirestoreId(firestoreId);
-                showToast('Excluído');
-                await refreshCalendarAndList();
-            } catch (e) {
-                showToast('Erro ao excluir');
-                console.error(e);
-            }
-        };
-
-        async function localDeleteByFirestoreId(firestoreId) {
-            // Busca local e deleta
-            const all = await localGetAll();
-            const item = all.find(e => e.firestoreId === firestoreId);
-            if (item && item.id) {
-                await localDelete(item.id);
-            }
-        }
-
-        // ---------- PREVIEW ----------
-        function showPreview(data) {
-            const container = document.getElementById('fieldsContainer');
+        // ----- CARREGAR PARA EDIÇÃO -----
+        function loadEventForEdit(ev) {
+            const container = fieldsContainer;
             container.innerHTML = '';
-            let hasData = false;
             DB_FIELDS.forEach(field => {
-                const value = data[field] || '';
-                if (value) hasData = true;
+                const value = ev[field] || '';
                 const div = document.createElement('div');
-                div.className = 'field-group' + (field === 'observacao' || field === 'obs' ? ' full-width' : '');
+                div.className = 'field' + (field === 'observacao' || field === 'obs' ? ' field-full' : '');
                 const label = document.createElement('label');
                 label.textContent = FIELD_LABELS[field] || field;
                 const input = document.createElement('input');
@@ -848,11 +803,10 @@
                 }
                 container.appendChild(div);
             });
-            if (!hasData) {
-                container.innerHTML = '<div class="vazio" style="grid-column:1/-1;">Nenhum dado reconhecido.</div>';
-            }
-            document.getElementById('previewCard').classList.remove('hidden');
-            document.getElementById('inputCard').classList.add('hidden');
+            previewCard.classList.remove('hidden');
+            saveBtn.textContent = '🔄 Atualizar';
+            editingId = ev.id;
+            previewCard.scrollIntoView({ behavior: 'smooth' });
         }
 
         function collectPreviewData() {
@@ -864,140 +818,160 @@
             return data;
         }
 
-        // ---------- REFRESH ----------
-        async function refreshCalendarAndList() {
-            // Carrega todos do local
-            const items = await localGetAll();
-            allEvents = items;
-            // Atualiza calendário
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            renderCalendar(year, month);
+        function resetPreview() {
+            previewCard.classList.add('hidden');
+            editingId = null;
+            saveBtn.textContent = '💾 Salvar';
+            fieldsContainer.innerHTML = '';
         }
 
-        // ---------- TOAST ----------
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.classList.add('show');
-            clearTimeout(toast._timer);
-            toast._timer = setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        // ---------- EVENT LISTENERS ----------
-        document.addEventListener('DOMContentLoaded', async () => {
-            await openLocalDB();
-
-            // Tentar sincronizar automaticamente
-            try {
-                await syncFromFirebase();
-            } catch (e) {
-                // Fallback para dados locais
-                console.warn('Usando dados locais (offline)');
+        // ----- EVENTOS UI -----
+        parseBtn.addEventListener('click', () => {
+            const raw = rawInput.value.trim();
+            if (!raw) {
+                showToast('Cole uma mensagem primeiro');
+                return;
             }
-            await refreshCalendarAndList();
-
-            // Navegação do calendário
-            document.getElementById('prevMonth').addEventListener('click', () => {
-                currentDate.setMonth(currentDate.getMonth() - 1);
-                const year = currentDate.getFullYear();
-                const month = currentDate.getMonth();
-                renderCalendar(year, month);
-            });
-            document.getElementById('nextMonth').addEventListener('click', () => {
-                currentDate.setMonth(currentDate.getMonth() + 1);
-                const year = currentDate.getFullYear();
-                const month = currentDate.getMonth();
-                renderCalendar(year, month);
-            });
-
-            // Botão Novo -> mostra o card de entrada
-            document.getElementById('addNewBtn').addEventListener('click', () => {
-                document.getElementById('inputCard').classList.remove('hidden');
-                document.getElementById('previewCard').classList.add('hidden');
-                document.getElementById('rawInput').value = '';
-                document.getElementById('rawInput').focus();
-                const saveBtn = document.getElementById('saveBtn');
-                saveBtn.textContent = '💾 Salvar';
-                saveBtn.dataset.editId = '';
-            });
-
-            // Botão Interpretar
-            document.getElementById('parseBtn').addEventListener('click', () => {
-                const raw = document.getElementById('rawInput').value;
-                if (!raw.trim()) {
-                    showToast('Cole uma mensagem primeiro');
-                    return;
+            const parsed = parseMessage(raw);
+            const container = fieldsContainer;
+            container.innerHTML = '';
+            DB_FIELDS.forEach(field => {
+                const value = parsed[field] || '';
+                const div = document.createElement('div');
+                div.className = 'field' + (field === 'observacao' || field === 'obs' ? ' field-full' : '');
+                const label = document.createElement('label');
+                label.textContent = FIELD_LABELS[field] || field;
+                const input = document.createElement('input');
+                if (field === 'observacao' || field === 'obs') {
+                    const textarea = document.createElement('textarea');
+                    textarea.rows = 2;
+                    textarea.value = value;
+                    textarea.id = 'field-' + field;
+                    div.appendChild(label);
+                    div.appendChild(textarea);
+                } else {
+                    input.type = 'text';
+                    input.value = value;
+                    input.id = 'field-' + field;
+                    div.appendChild(label);
+                    div.appendChild(input);
                 }
-                const parsed = parseMessage(raw);
-                showPreview(parsed);
+                container.appendChild(div);
             });
-
-            // Cancelar preview
-            document.getElementById('cancelPreviewBtn').addEventListener('click', () => {
-                document.getElementById('previewCard').classList.add('hidden');
-                document.getElementById('inputCard').classList.remove('hidden');
-            });
-
-            // Salvar
-            document.getElementById('saveBtn').addEventListener('click', async () => {
-                const data = collectPreviewData();
-                const hasData = DB_FIELDS.some(f => data[f] && data[f].trim() !== '');
-                if (!hasData) {
-                    showToast('Nenhum dado para salvar');
-                    return;
-                }
-
-                try {
-                    const editId = document.getElementById('saveBtn').dataset.editId;
-                    // Se tiver editId, é uma atualização
-                    let firestoreId = editId;
-                    let savedDocRef;
-                    if (editId) {
-                        // Atualiza no Firebase
-                        await firebaseSave({ ...data, firestoreId: editId });
-                        // Atualiza local
-                        await localDeleteByFirestoreId(editId);
-                        const newData = { ...data, firestoreId: editId };
-                        await localSave(newData);
-                        showToast('Atualizado!');
-                    } else {
-                        // Salva no Firebase primeiro
-                        const docRef = await firebaseSave(data);
-                        firestoreId = docRef.id;
-                        // Salva local com firestoreId
-                        const newData = { ...data, firestoreId: firestoreId };
-                        await localSave(newData);
-                        showToast('Salvo com sucesso!');
-                    }
-
-                    document.getElementById('previewCard').classList.add('hidden');
-                    document.getElementById('inputCard').classList.remove('hidden');
-                    document.getElementById('rawInput').value = '';
-                    await refreshCalendarAndList();
-                } catch (e) {
-                    console.error(e);
-                    showToast('Erro ao salvar. Tente novamente.');
-                }
-            });
-
-            // Sincronizar manual
-            document.getElementById('syncNowBtn').addEventListener('click', async () => {
-                await syncAll();
-            });
+            previewCard.classList.remove('hidden');
+            saveBtn.textContent = '💾 Salvar';
+            editingId = null;
+            previewCard.scrollIntoView({ behavior: 'smooth' });
         });
 
-        // Função para sincronizar e atualizar
-        async function syncAll() {
-            try {
-                await syncFromFirebase();
-                await refreshCalendarAndList();
-            } catch (e) {
-                // já tratado no syncFromFirebase
+        cancelPreviewBtn.addEventListener('click', resetPreview);
+
+        saveBtn.addEventListener('click', async () => {
+            const data = collectPreviewData();
+            const hasData = DB_FIELDS.some(f => data[f] && data[f].trim() !== '');
+            if (!hasData) {
+                showToast('Preencha ao menos um campo');
+                return;
             }
+            try {
+                if (editingId) {
+                    await updateDoc(doc(db, 'agendamentos', editingId), data);
+                    showToast('Agendamento atualizado!');
+                } else {
+                    await addDoc(eventsCollection, data);
+                    showToast('Agendamento salvo!');
+                }
+                resetPreview();
+                rawInput.value = '';
+            } catch (e) {
+                showToast('Erro ao salvar: ' + e.message);
+                console.error(e);
+            }
+        });
+
+        prevMonthBtn.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar(allEvents, currentDate.getFullYear(), currentDate.getMonth());
+        });
+        nextMonthBtn.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar(allEvents, currentDate.getFullYear(), currentDate.getMonth());
+        });
+
+        // ----- SINCRONIZAÇÃO MANUAL (FORÇAR RECARGA) -----
+        forceSyncBtn.addEventListener('click', async () => {
+            showToast('Forçando sincronização...');
+            try {
+                // Desconectar e reconectar o snapshot? Vamos apenas recarregar manualmente
+                if (unsubscribe) {
+                    unsubscribe();
+                    unsubscribe = null;
+                }
+                // Nova consulta
+                const q = query(eventsCollection, orderBy('data'));
+                unsubscribe = onSnapshot(q, (snapshot) => {
+                    const events = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        data.id = doc.id;
+                        events.push(data);
+                    });
+                    allEvents = events;
+                    renderCalendar(events, currentDate.getFullYear(), currentDate.getMonth());
+                    setSyncStatus('online');
+                    showToast('Sincronizado!', 1200);
+                }, (error) => {
+                    console.error('Erro no snapshot:', error);
+                    setSyncStatus('error');
+                    showToast('Erro de conexão: ' + error.message);
+                });
+            } catch (e) {
+                showToast('Erro: ' + e.message);
+            }
+        });
+
+        // ----- INICIALIZAÇÃO FIREBASE (snapshot) -----
+        function initFirebaseListener() {
+            // Consulta sem orderBy para evitar erros se alguns docs não tiverem campo 'data'
+            // Mas podemos usar orderBy com tratamento
+            const q = query(eventsCollection, orderBy('data'));
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                const events = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    data.id = doc.id;
+                    events.push(data);
+                });
+                allEvents = events;
+                console.log('Eventos recebidos do Firebase:', events.length);
+                renderCalendar(events, currentDate.getFullYear(), currentDate.getMonth());
+                setSyncStatus('online');
+                // Não mostrar toast a cada atualização para não poluir
+            }, (error) => {
+                console.error('Erro no snapshot:', error);
+                setSyncStatus('error');
+                showToast('Erro de sincronização: ' + error.message);
+                // Tenta novamente após 5 segundos?
+                setTimeout(() => {
+                    if (unsubscribe) {
+                        unsubscribe();
+                        unsubscribe = null;
+                    }
+                    initFirebaseListener();
+                }, 5000);
+            });
         }
 
-    })();
-</script>
+        // ----- INICIALIZAÇÃO -----
+        const now = new Date();
+        currentDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        const todayStr = formatDateKey(now.getFullYear(), now.getMonth(), now.getDate());
+        selectedDate = todayStr;
+
+        // Inicia listener
+        initFirebaseListener();
+
+        console.log('App iniciado. Aguardando dados do Firebase...');
+    </script>
 </body>
 </html>
