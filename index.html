@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
-    <title>Agendamentos + Calendário (Firebase)</title>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Agenda Inteligente + IA</title>
     <script type="importmap">
         {
             "imports": {
@@ -13,17 +12,15 @@
             }
         }
     </script>
-
     <style>
-        /* (mesmo estilo anterior, mantido) */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
         body {
-            background: #f3f6fc;
+            background: #f0f4fa;
             padding: 16px;
             color: #0b1a33;
         }
@@ -31,6 +28,7 @@
             max-width: 720px;
             margin: 0 auto;
         }
+        /* Header */
         .header {
             display: flex;
             align-items: center;
@@ -45,90 +43,72 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .header h1 small {
-            font-size: 0.8rem;
-            font-weight: 400;
-            -webkit-text-fill-color: #6b7a8f;
-            background: none;
         }
         .sync-status {
-            background: #e6edf6;
-            padding: 6px 14px;
+            background: #e2e9f3;
+            padding: 4px 14px;
             border-radius: 30px;
             font-size: 0.75rem;
-            color: #1a4b8c;
-            font-weight: 500;
             display: flex;
             align-items: center;
             gap: 6px;
+            font-weight: 500;
         }
-        .sync-status .dot {
+        .dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
             display: inline-block;
         }
-        .sync-status .dot.online {
-            background: #22c55e;
-        }
-        .sync-status .dot.offline {
-            background: #f59e0b;
-        }
-        .sync-status .dot.error {
-            background: #ef4444;
-        }
+        .dot.online { background: #22c55e; }
+        .dot.offline { background: #f59e0b; }
+        .dot.error { background: #ef4444; }
+
+        /* Cards */
         .card {
-            background: #ffffff;
+            background: white;
             border-radius: 24px;
             padding: 20px;
             margin-bottom: 24px;
-            box-shadow: 0 8px 24px rgba(0, 20, 50, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+            border: 1px solid #e9edf4;
         }
         .card-title {
-            font-size: 1.1rem;
             font-weight: 600;
-            margin-bottom: 16px;
+            font-size: 1.1rem;
             color: #1e3a6f;
+            margin-bottom: 16px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        .card-title .badge {
+        .badge {
             background: #dbeafe;
             color: #1e4b8c;
             font-size: 0.7rem;
-            padding: 2px 10px;
+            padding: 2px 12px;
             border-radius: 20px;
             font-weight: 500;
         }
+
+        /* Calendário */
         .calendar-nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
         .calendar-nav button {
             background: none;
             border: none;
             font-size: 1.4rem;
-            cursor: pointer;
             color: #1a4b8c;
-            padding: 4px 12px;
-            border-radius: 30px;
-            transition: 0.2s;
+            padding: 0 12px;
+            cursor: pointer;
         }
-        .calendar-nav button:hover {
-            background: #eef3fa;
-        }
-        .calendar-nav .month-year {
+        .month-year {
             font-weight: 600;
             font-size: 1.2rem;
-            color: #0b1a33;
         }
         .calendar-grid {
             display: grid;
@@ -136,55 +116,42 @@
             gap: 4px;
             text-align: center;
         }
-        .calendar-grid .weekday {
+        .weekday {
             font-size: 0.7rem;
             font-weight: 600;
-            color: #6b7a8f;
-            padding: 8px 0;
+            color: #6b7f99;
+            padding: 6px 0;
         }
-        .calendar-grid .day {
-            aspect-ratio: 1 / 1;
+        .day {
+            aspect-ratio: 1/1;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             border-radius: 12px;
-            font-size: 0.9rem;
             font-weight: 500;
             cursor: pointer;
-            transition: 0.15s;
             background: transparent;
-            color: #1e3a6f;
+            transition: 0.15s;
             position: relative;
         }
-        .calendar-grid .day:hover {
-            background: #eef3fa;
-        }
-        .calendar-grid .day.other-month {
-            color: #b0c4de;
-        }
-        .calendar-grid .day.today {
-            background: #dbeafe;
-            font-weight: 700;
-        }
-        .calendar-grid .day.has-event::after {
+        .day:hover { background: #e6edf6; }
+        .day.other-month { color: #b0c4de; }
+        .day.today { background: #dbeafe; font-weight: 700; }
+        .day.has-event::after {
             content: '';
             width: 6px;
             height: 6px;
             background: #3b82f6;
             border-radius: 50%;
             position: absolute;
-            bottom: 6px;
+            bottom: 4px;
             left: 50%;
             transform: translateX(-50%);
         }
-        .calendar-grid .day.selected {
-            background: #3b82f6;
-            color: white;
-        }
-        .calendar-grid .day.selected.has-event::after {
-            background: white;
-        }
+        .day.selected { background: #3b82f6; color: white; }
+        .day.selected.has-event::after { background: white; }
+
+        /* Lista de eventos do dia */
         .day-events {
             margin-top: 16px;
             border-top: 1px solid #e6edf6;
@@ -192,7 +159,6 @@
         }
         .day-events .empty {
             color: #8a9bb0;
-            font-size: 0.9rem;
             text-align: center;
             padding: 12px 0;
         }
@@ -205,24 +171,21 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
         }
         .event-item .info {
             flex: 1;
-            min-width: 150px;
+            cursor: pointer;
         }
         .event-item .info .name {
             font-weight: 600;
-            font-size: 1rem;
         }
         .event-item .info .detail {
             font-size: 0.8rem;
             color: #4a5b72;
-            margin-top: 2px;
         }
         .event-item .actions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
         }
         .event-item .actions button {
             background: none;
@@ -233,24 +196,94 @@
             border-radius: 20px;
             transition: 0.2s;
         }
-        .event-item .actions button:hover {
-            background: #e6edf6;
+        .event-item .actions button:hover { background: #e6edf6; }
+
+        /* Modal de detalhes */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s;
         }
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal {
+            background: white;
+            border-radius: 28px;
+            max-width: 500px;
+            width: 100%;
+            padding: 28px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.2);
+            transform: scale(0.95);
+            transition: transform 0.25s;
+        }
+        .modal-overlay.open .modal {
+            transform: scale(1);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 {
+            font-size: 1.3rem;
+            color: #0b1a33;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.6rem;
+            cursor: pointer;
+            color: #6b7f99;
+        }
+        .modal-field {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f4fa;
+        }
+        .modal-field .label {
+            font-weight: 600;
+            width: 110px;
+            flex-shrink: 0;
+            color: #4a5b72;
+        }
+        .modal-field .value {
+            color: #0b1a33;
+            word-break: break-word;
+        }
+        .modal-field .value.empty {
+            color: #b0c4de;
+            font-style: italic;
+        }
+
+        /* Formulário */
         textarea {
             width: 100%;
-            min-height: 140px;
+            min-height: 130px;
             padding: 14px;
             border: 1px solid #dbe0e8;
             border-radius: 16px;
             font-size: 0.95rem;
             background: #fafcff;
             resize: vertical;
-            transition: border 0.2s;
         }
         textarea:focus {
             outline: none;
             border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
         }
         .btn {
             display: inline-block;
@@ -266,27 +299,18 @@
             width: 100%;
             text-align: center;
         }
-        .btn:active {
-            transform: scale(0.97);
-        }
-        .btn-secondary {
-            background: #e6edf6;
-            color: #1a4b8c;
-        }
-        .btn-danger {
-            background: #ef4444;
-        }
-        .btn-success {
-            background: #22c55e;
-        }
+        .btn:active { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary { background: #e6edf6; color: #1a4b8c; }
+        .btn-success { background: #22c55e; }
+        .btn-danger { background: #ef4444; }
         .btn-group {
             display: flex;
             gap: 10px;
             margin-top: 12px;
         }
-        .btn-group .btn {
-            flex: 1;
-        }
+        .btn-group .btn { flex: 1; }
+
         .extracted-fields {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -303,27 +327,22 @@
             font-weight: 600;
             text-transform: uppercase;
             color: #5a6f88;
-            letter-spacing: 0.3px;
         }
-        .field input,
-        .field textarea {
+        .field input, .field textarea {
             padding: 8px 12px;
             border: 1px solid #dbe0e8;
             border-radius: 10px;
             font-size: 0.9rem;
             background: #fafcff;
         }
-        .field input:focus,
-        .field textarea:focus {
+        .field input:focus, .field textarea:focus {
             outline: none;
             border-color: #3b82f6;
         }
-        .field-full {
-            grid-column: 1 / -1;
-        }
-        .hidden {
-            display: none !important;
-        }
+        .field-full { grid-column: 1 / -1; }
+        .hidden { display: none !important; }
+
+        /* Toast */
         .toast {
             position: fixed;
             bottom: 20px;
@@ -334,263 +353,309 @@
             padding: 12px 24px;
             border-radius: 40px;
             font-size: 0.9rem;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
             opacity: 0;
             transition: opacity 0.3s;
             pointer-events: none;
-            z-index: 999;
+            z-index: 2000;
         }
-        .toast.show {
-            opacity: 1;
-        }
+        .toast.show { opacity: 1; }
+
         @media (max-width: 500px) {
-            .extracted-fields {
-                grid-template-columns: 1fr;
-            }
-            .header h1 {
-                font-size: 1.4rem;
-            }
-            .sync-status {
-                font-size: 0.65rem;
-                padding: 4px 10px;
-            }
-        }
-        .btn-sync {
-            background: #8b5cf6;
-            color: white;
-            border: none;
-            padding: 6px 16px;
-            border-radius: 30px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .btn-sync:hover {
-            background: #7c3aed;
-        }
-        .flex-row {
-            display: flex;
-            gap: 10px;
-            align-items: center;
+            .extracted-fields { grid-template-columns: 1fr; }
+            .header h1 { font-size: 1.4rem; }
+            .modal { padding: 20px; }
+            .modal-field .label { width: 80px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <!-- HEADER -->
-        <div class="header">
-            <h1>📅 Agenda<span style="-webkit-text-fill-color: #1a4b8c;">+</span> <small>IA</small></h1>
-            <div class="flex-row">
-                <div class="sync-status" id="syncStatus">
-                    <span class="dot online" id="syncDot"></span>
-                    <span id="syncLabel">Sincronizado</span>
-                </div>
-                <button class="btn-sync" id="forceSyncBtn">🔄</button>
-            </div>
-        </div>
-
-        <!-- CALENDÁRIO -->
-        <div class="card">
-            <div class="card-title">
-                📆 Calendário
-                <span class="badge" id="eventCount">0 eventos</span>
-            </div>
-            <div class="calendar-nav">
-                <button id="prevMonth">◀</button>
-                <span class="month-year" id="monthYear">Maio 2026</span>
-                <button id="nextMonth">▶</button>
-            </div>
-            <div class="calendar-grid" id="calendarGrid"></div>
-            <div class="day-events" id="dayEvents">
-                <div class="empty">Selecione um dia para ver os agendamentos</div>
-            </div>
-        </div>
-
-        <!-- ADICIONAR NOVO -->
-        <div class="card">
-            <div class="card-title">✏️ Novo agendamento</div>
-            <textarea id="rawInput" placeholder="Cole a mensagem bagunçada do WhatsApp...&#10;Ex:&#10;Data: 31/07/26&#10;Responsável: Paula Ávila&#10;..."></textarea>
-            <button class="btn" id="parseBtn">🔍 Interpretar</button>
-
-            <!-- Preview (oculto) -->
-            <div id="previewCard" class="hidden" style="margin-top:16px;">
-                <div id="fieldsContainer" class="extracted-fields"></div>
-                <div class="btn-group">
-                    <button class="btn btn-success" id="saveBtn">💾 Salvar</button>
-                    <button class="btn btn-secondary" id="cancelPreviewBtn">Cancelar</button>
-                </div>
-            </div>
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1>📅 Agenda+ IA</h1>
+        <div class="sync-status">
+            <span class="dot online" id="syncDot"></span>
+            <span id="syncLabel">Sincronizado</span>
+            <button id="forceSyncBtn" style="background:none;border:none;cursor:pointer;font-size:1rem;">🔄</button>
         </div>
     </div>
 
-    <!-- TOAST -->
-    <div id="toast" class="toast"></div>
+    <!-- Calendário -->
+    <div class="card">
+        <div class="card-title">
+            📆 Calendário
+            <span class="badge" id="eventCount">0 eventos</span>
+        </div>
+        <div class="calendar-nav">
+            <button id="prevMonth">◀</button>
+            <span class="month-year" id="monthYear">Maio 2026</span>
+            <button id="nextMonth">▶</button>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <div class="day-events" id="dayEvents">
+            <div class="empty">Selecione um dia</div>
+        </div>
+    </div>
 
-    <!-- ============================================================ -->
-    <!-- JAVASCRIPT -->
-    <script type="module">
-        // ----- IMPORTS FIREBASE -----
-        import { initializeApp } from 'firebase/app';
-        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy, getDocs } from 'firebase/firestore';
+    <!-- Novo agendamento -->
+    <div class="card">
+        <div class="card-title">✏️ Novo agendamento</div>
+        <textarea id="rawInput" placeholder="Cole a mensagem bagunçada...&#10;Ex: Data: 19/07&#10;Responsável: Paula&#10;Tema: Festa..."></textarea>
+        <button class="btn" id="parseBtn">🔍 Interpretar</button>
+        <div id="previewCard" class="hidden" style="margin-top:16px;">
+            <div id="fieldsContainer" class="extracted-fields"></div>
+            <div class="btn-group">
+                <button class="btn btn-success" id="saveBtn">💾 Salvar</button>
+                <button class="btn btn-secondary" id="cancelPreviewBtn">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDMwdtyx3zWHwCHtalq572E_FyrF4f-drM",
-            authDomain: "corretorpro-84422.firebaseapp.com",
-            projectId: "corretorpro-84422",
-            storageBucket: "corretorpro-84422.firebasestorage.app",
-            messagingSenderId: "577827555644",
-            appId: "1:577827555644:web:6394517f3ba8a8230ab639",
-            measurementId: "G-YWXW1KFCW1"
-        };
+<!-- Modal de detalhes -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>📋 Detalhes do agendamento</h2>
+            <button class="modal-close" id="modalClose">✕</button>
+        </div>
+        <div id="modalBody"></div>
+    </div>
+</div>
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const eventsCollection = collection(db, 'agendamentos');
+<!-- Toast -->
+<div id="toast" class="toast"></div>
 
-        // ----- ESTADO -----
-        let allEvents = [];
-        let currentDate = new Date();
-        let selectedDate = null;
-        let editingId = null;
-        let unsubscribe = null; // para o snapshot
+<script type="module">
+    // ----- IMPORTS FIREBASE -----
+    import { initializeApp } from 'firebase/app';
+    import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 
-        // DOM refs
-        const calendarGrid = document.getElementById('calendarGrid');
-        const monthYear = document.getElementById('monthYear');
-        const dayEventsDiv = document.getElementById('dayEvents');
-        const rawInput = document.getElementById('rawInput');
-        const parseBtn = document.getElementById('parseBtn');
-        const previewCard = document.getElementById('previewCard');
-        const fieldsContainer = document.getElementById('fieldsContainer');
-        const saveBtn = document.getElementById('saveBtn');
-        const cancelPreviewBtn = document.getElementById('cancelPreviewBtn');
-        const prevMonthBtn = document.getElementById('prevMonth');
-        const nextMonthBtn = document.getElementById('nextMonth');
-        const toast = document.getElementById('toast');
-        const syncDot = document.getElementById('syncDot');
-        const syncLabel = document.getElementById('syncLabel');
-        const eventCount = document.getElementById('eventCount');
-        const forceSyncBtn = document.getElementById('forceSyncBtn');
+    const firebaseConfig = {
+        apiKey: "AIzaSyDMwdtyx3zWHwCHtalq572E_FyrF4f-drM",
+        authDomain: "corretorpro-84422.firebaseapp.com",
+        projectId: "corretorpro-84422",
+        storageBucket: "corretorpro-84422.firebasestorage.app",
+        messagingSenderId: "577827555644",
+        appId: "1:577827555644:web:6394517f3ba8a8230ab639",
+        measurementId: "G-YWXW1KFCW1"
+    };
 
-        // ----- TOAST -----
-        function showToast(msg, duration = 2500) {
-            toast.textContent = msg;
-            toast.classList.add('show');
-            clearTimeout(toast._timer);
-            toast._timer = setTimeout(() => toast.classList.remove('show'), duration);
-        }
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const eventsCollection = collection(db, 'agendamentos');
 
-        // ----- SYNC STATUS -----
-        function setSyncStatus(state) {
-            // state: 'online', 'offline', 'error'
-            syncDot.className = 'dot ' + state;
-            if (state === 'online') syncLabel.textContent = 'Sincronizado';
-            else if (state === 'offline') syncLabel.textContent = 'Offline';
-            else if (state === 'error') syncLabel.textContent = 'Erro';
-        }
+    // ----- ESTADO GLOBAL -----
+    let allEvents = [];
+    let currentDate = new Date();
+    let selectedDate = null;
+    let editingId = null;
+    let unsubscribe = null;
+    let isSaving = false;
 
-        // ----- FORMATAÇÃO -----
-        function formatDateKey(year, month, day) {
-            return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        }
+    // DOM refs
+    const calendarGrid = document.getElementById('calendarGrid');
+    const monthYear = document.getElementById('monthYear');
+    const dayEventsDiv = document.getElementById('dayEvents');
+    const rawInput = document.getElementById('rawInput');
+    const parseBtn = document.getElementById('parseBtn');
+    const previewCard = document.getElementById('previewCard');
+    const fieldsContainer = document.getElementById('fieldsContainer');
+    const saveBtn = document.getElementById('saveBtn');
+    const cancelPreviewBtn = document.getElementById('cancelPreviewBtn');
+    const prevMonthBtn = document.getElementById('prevMonth');
+    const nextMonthBtn = document.getElementById('nextMonth');
+    const toast = document.getElementById('toast');
+    const syncDot = document.getElementById('syncDot');
+    const syncLabel = document.getElementById('syncLabel');
+    const eventCount = document.getElementById('eventCount');
+    const forceSyncBtn = document.getElementById('forceSyncBtn');
+    const detailModal = document.getElementById('detailModal');
+    const modalBody = document.getElementById('modalBody');
+    const modalClose = document.getElementById('modalClose');
 
-        function formatDisplayDate(dateStr) {
+    // ----- TOAST -----
+    function showToast(msg, duration = 2500) {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => toast.classList.remove('show'), duration);
+    }
+
+    // ----- SYNC STATUS -----
+    function setSyncStatus(state) {
+        syncDot.className = 'dot ' + state;
+        const labels = { online: 'Sincronizado', offline: 'Offline', error: 'Erro' };
+        syncLabel.textContent = labels[state] || 'Sincronizado';
+    }
+
+    // ----- FORMATAÇÃO DE DATA -----
+    function formatDateKey(year, month, day) {
+        return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+
+    function formatDisplayDate(dateStr) {
+        try {
             const d = new Date(dateStr + 'T00:00:00');
             return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
-        }
+        } catch { return dateStr; }
+    }
 
-        // ----- MAPEAMENTO DE CAMPOS (igual) -----
-        const FIELD_MAP = {
-            'data': 'data',
-            'responsável': 'responsavel',
-            'cel': 'celular',
-            'cel.': 'celular',
-            'tema': 'tema',
-            'hora que a turma ruanito inicia': 'hora_inicio',
-            'local': 'local',
-            'valor pago': 'valor_pago',
-            'pacote contratado': 'pacote',
-            'alguma observação': 'observacao',
-            'valor restante': 'valor_restante',
-            'nome do(a) aniversariante': 'aniversariante',
-            'obs.': 'obs',
-            'obs': 'obs'
-        };
-        const DB_FIELDS = [
-            'data', 'responsavel', 'celular', 'tema', 'hora_inicio',
-            'local', 'valor_pago', 'pacote', 'observacao', 'valor_restante',
-            'aniversariante', 'obs'
-        ];
-        const FIELD_LABELS = {
-            data: 'Data',
-            responsavel: 'Responsável',
-            celular: 'Celular',
-            tema: 'Tema',
-            hora_inicio: 'Hora início',
-            local: 'Local',
-            valor_pago: 'Valor pago',
-            pacote: 'Pacote',
-            observacao: 'Observação',
-            valor_restante: 'Valor restante',
-            aniversariante: 'Aniversariante',
-            obs: 'Observações extras'
-        };
+    // ----- INTERPRETAÇÃO DE DATA (mais robusta) -----
+    function parseDateFromString(str) {
+        str = str.trim();
+        if (!str) return null;
 
-        function mapKey(rawKey) {
-            let key = rawKey.toLowerCase().replace(/[^a-záéíóúàâêôãõç ]/g, '').trim();
-            if (FIELD_MAP[key]) return FIELD_MAP[key];
-            for (let pattern in FIELD_MAP) {
-                if (key.includes(pattern) || pattern.includes(key)) return FIELD_MAP[pattern];
+        // Tenta formatos: DD/MM/AAAA, DD/MM/AA, DD/MM
+        const slashParts = str.split('/');
+        if (slashParts.length >= 2) {
+            let day = parseInt(slashParts[0]);
+            let month = parseInt(slashParts[1]) - 1;
+            let year = slashParts.length === 3 ? parseInt(slashParts[2]) : new Date().getFullYear();
+            if (slashParts.length === 3 && year < 100) year += 2000;
+            if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                return { year, month, day };
             }
-            if (key.includes('data')) return 'data';
-            if (key.includes('respons') || key.includes('resp')) return 'responsavel';
-            if (key.includes('cel') || key.includes('telefone')) return 'celular';
-            if (key.includes('tema')) return 'tema';
-            if (key.includes('hora')) return 'hora_inicio';
-            if (key.includes('local')) return 'local';
-            if (key.includes('valor pago')) return 'valor_pago';
-            if (key.includes('pacote')) return 'pacote';
-            if (key.includes('observa')) return 'observacao';
-            if (key.includes('restante')) return 'valor_restante';
-            if (key.includes('anivers') || key.includes('aniversariante')) return 'aniversariante';
-            if (key.includes('obs')) return 'obs';
-            return null;
         }
 
-        function parseMessage(text) {
-            const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-            const result = {};
-            let currentKey = null;
-            let currentValue = '';
+        // Tenta "19 de julho" ou "19 de julho de 2026"
+        const monthNames = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+        const regex = /(\d{1,2})\s+de\s+(\w+)(?:\s+de\s+(\d{4}))?/i;
+        const match = str.match(regex);
+        if (match) {
+            const day = parseInt(match[1]);
+            const monthName = match[2].toLowerCase();
+            const monthIndex = monthNames.indexOf(monthName);
+            if (monthIndex !== -1) {
+                const year = match[3] ? parseInt(match[3]) : new Date().getFullYear();
+                return { year, month: monthIndex, day };
+            }
+        }
 
-            for (let line of lines) {
-                const colonIndex = line.indexOf(':');
-                if (colonIndex !== -1) {
-                    if (currentKey) {
-                        result[currentKey] = currentValue.trim();
-                        currentKey = null;
-                        currentValue = '';
-                    }
-                    const key = line.substring(0, colonIndex).trim().toLowerCase();
-                    const value = line.substring(colonIndex + 1).trim();
-                    const mappedKey = mapKey(key);
-                    if (mappedKey) {
-                        if (mappedKey === 'observacao' || mappedKey === 'obs') {
-                            currentKey = mappedKey;
-                            currentValue = value;
+        // Tenta ISO YYYY-MM-DD
+        const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (iso) {
+            return { year: parseInt(iso[1]), month: parseInt(iso[2]) - 1, day: parseInt(iso[3]) };
+        }
+
+        return null;
+    }
+
+    function normalizeDate(raw) {
+        const parsed = parseDateFromString(raw);
+        if (parsed) {
+            return formatDateKey(parsed.year, parsed.month, parsed.day);
+        }
+        return null;
+    }
+
+    // ----- MAPEAMENTO DE PALAVRAS-CHAVE (abrangente) -----
+    const KEYWORD_MAP = {
+        'data': 'data',
+        'data:': 'data',
+        'responsável': 'responsavel',
+        'responsavel': 'responsavel',
+        'resp': 'responsavel',
+        'celular': 'celular',
+        'cel': 'celular',
+        'telefone': 'celular',
+        'tema': 'tema',
+        'local': 'local',
+        'valor pago': 'valor_pago',
+        'valor': 'valor_pago',
+        'pagamento': 'valor_pago',
+        'observações': 'observacao',
+        'observacao': 'observacao',
+        'obs': 'obs',
+        'observação': 'observacao',
+        'valor restante': 'valor_restante',
+        'restante': 'valor_restante',
+        'pacote': 'pacote',
+        'pacote contratado': 'pacote',
+        'hora de início': 'hora_inicio',
+        'hora inicio': 'hora_inicio',
+        'hora': 'hora_inicio',
+        'início': 'hora_inicio',
+        'aniversariante': 'aniversariante',
+        'nome': 'aniversariante'
+    };
+
+    const DB_FIELDS = [
+        'data', 'responsavel', 'celular', 'tema', 'hora_inicio',
+        'local', 'valor_pago', 'pacote', 'observacao', 'valor_restante',
+        'aniversariante', 'obs'
+    ];
+
+    const FIELD_LABELS = {
+        data: 'Data',
+        responsavel: 'Responsável',
+        celular: 'Celular',
+        tema: 'Tema',
+        hora_inicio: 'Hora de início',
+        local: 'Local',
+        valor_pago: 'Valor pago',
+        pacote: 'Pacote',
+        observacao: 'Observação',
+        valor_restante: 'Valor restante',
+        aniversariante: 'Aniversariante',
+        obs: 'Obs.'
+    };
+
+    function mapKey(rawKey) {
+        const lower = rawKey.toLowerCase().trim();
+        // Remove pontuação e espaços extras
+        const clean = lower.replace(/[^a-záéíóúàâêôãõç ]/g, '').trim();
+        // Tenta correspondência exata
+        if (KEYWORD_MAP[clean]) return KEYWORD_MAP[clean];
+        // Tenta correspondência parcial
+        for (let pattern in KEYWORD_MAP) {
+            if (clean.includes(pattern) || pattern.includes(clean)) {
+                return KEYWORD_MAP[pattern];
+            }
+        }
+        return null;
+    }
+
+    // ----- PARSER PRINCIPAL -----
+    function parseMessage(text) {
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        const result = {};
+        let currentKey = null;
+        let currentValue = '';
+
+        for (let line of lines) {
+            const colonIndex = line.indexOf(':');
+            if (colonIndex !== -1) {
+                if (currentKey) {
+                    result[currentKey] = currentValue.trim();
+                    currentKey = null;
+                    currentValue = '';
+                }
+                const key = line.substring(0, colonIndex).trim();
+                const value = line.substring(colonIndex + 1).trim();
+                const mappedKey = mapKey(key);
+                if (mappedKey) {
+                    if (mappedKey === 'observacao' || mappedKey === 'obs') {
+                        currentKey = mappedKey;
+                        currentValue = value;
+                    } else {
+                        // Se for data, tenta normalizar
+                        if (mappedKey === 'data') {
+                            const normalized = normalizeDate(value);
+                            if (normalized) {
+                                result[mappedKey] = normalized;
+                            } else {
+                                // Mantém o valor original
+                                result[mappedKey] = value;
+                            }
                         } else {
                             result[mappedKey] = value;
                         }
-                    } else {
-                        if (currentKey) {
-                            currentValue += ' ' + line;
-                        } else {
-                            if (!result.observacao) result.observacao = '';
-                            result.observacao += ' ' + line;
-                        }
                     }
                 } else {
+                    // Chave não mapeada: acumula em observação
                     if (currentKey) {
                         currentValue += ' ' + line;
                     } else {
@@ -598,380 +663,401 @@
                         result.observacao += ' ' + line;
                     }
                 }
-            }
-            if (currentKey) {
-                result[currentKey] = currentValue.trim();
-            }
-            for (let key in result) {
-                result[key] = result[key].trim();
-            }
-            return result;
-        }
-
-        // ----- RENDER CALENDÁRIO -----
-        function renderCalendar(events, year, month) {
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const daysInPrevMonth = new Date(year, month, 0).getDate();
-            const today = new Date();
-            const todayStr = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
-
-            const eventsMap = {};
-            events.forEach(ev => {
-                if (ev.data) {
-                    const d = ev.data.trim();
-                    let dateKey = null;
-                    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
-                        dateKey = d;
-                    } else {
-                        const parts = d.split('/');
-                        if (parts.length === 3) {
-                            let day = parseInt(parts[0]);
-                            let monthNum = parseInt(parts[1]) - 1;
-                            let yearNum = parseInt(parts[2]);
-                            if (yearNum < 100) yearNum += 2000;
-                            if (!isNaN(day) && !isNaN(monthNum) && !isNaN(yearNum)) {
-                                dateKey = formatDateKey(yearNum, monthNum, day);
-                            }
-                        }
-                    }
-                    if (dateKey) {
-                        if (!eventsMap[dateKey]) eventsMap[dateKey] = [];
-                        eventsMap[dateKey].push(ev);
-                    }
-                }
-            });
-
-            let html = '';
-            const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-            weekdays.forEach(w => {
-                html += `<div class="weekday">${w}</div>`;
-            });
-
-            const startOffset = firstDay;
-            for (let i = daysInPrevMonth - startOffset + 1; i <= daysInPrevMonth; i++) {
-                html += `<div class="day other-month">${i}</div>`;
-            }
-
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dateKey = formatDateKey(year, month, d);
-                const isToday = dateKey === todayStr;
-                const hasEvent = eventsMap[dateKey] && eventsMap[dateKey].length > 0;
-                const isSelected = dateKey === selectedDate;
-                let classes = 'day';
-                if (isToday) classes += ' today';
-                if (hasEvent) classes += ' has-event';
-                if (isSelected) classes += ' selected';
-                html += `<div class="${classes}" data-date="${dateKey}">${d}</div>`;
-            }
-
-            const totalCells = startOffset + daysInMonth;
-            const remaining = (7 - (totalCells % 7)) % 7;
-            for (let d = 1; d <= remaining; d++) {
-                html += `<div class="day other-month">${d}</div>`;
-            }
-
-            calendarGrid.innerHTML = html;
-            monthYear.textContent = new Date(year, month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-
-            let count = 0;
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dateKey = formatDateKey(year, month, d);
-                if (eventsMap[dateKey]) count += eventsMap[dateKey].length;
-            }
-            eventCount.textContent = count + ' evento' + (count !== 1 ? 's' : '');
-
-            document.querySelectorAll('.day:not(.other-month)').forEach(el => {
-                el.addEventListener('click', () => {
-                    const date = el.dataset.date;
-                    if (date) {
-                        selectedDate = date;
-                        renderCalendar(events, year, month);
-                        renderDayEvents(events, date);
-                    }
-                });
-            });
-
-            if (selectedDate) {
-                renderDayEvents(events, selectedDate);
             } else {
-                const firstEventDate = Object.keys(eventsMap).sort()[0];
-                if (firstEventDate) {
-                    selectedDate = firstEventDate;
-                    renderCalendar(events, year, month);
+                if (currentKey) {
+                    currentValue += ' ' + line;
                 } else {
-                    selectedDate = todayStr;
-                    renderCalendar(events, year, month);
+                    if (!result.observacao) result.observacao = '';
+                    result.observacao += ' ' + line;
+                }
+            }
+        }
+        if (currentKey) {
+            result[currentKey] = currentValue.trim();
+        }
+
+        // Limpeza
+        for (let key in result) {
+            result[key] = result[key].trim();
+        }
+
+        // Se data não foi encontrada, tenta extrair de qualquer linha com números
+        if (!result.data) {
+            for (let line of lines) {
+                const parsed = parseDateFromString(line);
+                if (parsed) {
+                    result.data = formatDateKey(parsed.year, parsed.month, parsed.day);
+                    break;
                 }
             }
         }
 
-        // ----- RENDER EVENTOS DO DIA -----
-        function renderDayEvents(events, dateKey) {
-            const filtered = events.filter(ev => {
-                if (!ev.data) return false;
-                const d = ev.data.trim();
-                if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d === dateKey;
-                const parts = d.split('/');
-                if (parts.length === 3) {
-                    let day = parseInt(parts[0]);
-                    let monthNum = parseInt(parts[1]) - 1;
-                    let yearNum = parseInt(parts[2]);
-                    if (yearNum < 100) yearNum += 2000;
-                    if (!isNaN(day) && !isNaN(monthNum) && !isNaN(yearNum)) {
-                        return formatDateKey(yearNum, monthNum, day) === dateKey;
-                    }
+        return result;
+    }
+
+    // ----- RENDER CALENDÁRIO -----
+    function renderCalendar(events, year, month) {
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const daysInPrevMonth = new Date(year, month, 0).getDate();
+        const today = new Date();
+        const todayStr = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
+
+        const eventsMap = {};
+        events.forEach(ev => {
+            if (ev.data) {
+                const dateKey = ev.data.trim(); // já deve estar normalizado
+                if (/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+                    if (!eventsMap[dateKey]) eventsMap[dateKey] = [];
+                    eventsMap[dateKey].push(ev);
                 }
-                return false;
-            });
-
-            if (filtered.length === 0) {
-                dayEventsDiv.innerHTML = `<div class="empty">📭 Nenhum agendamento para ${formatDisplayDate(dateKey)}</div>`;
-                return;
             }
+        });
 
-            let html = `<div style="margin-bottom:8px;font-weight:500;">📋 ${filtered.length} agendamento(s) em ${formatDisplayDate(dateKey)}</div>`;
-            filtered.forEach(ev => {
-                const nome = ev.aniversariante || 'Evento';
-                const resp = ev.responsavel || '';
-                const local = ev.local || '';
-                const hora = ev.hora_inicio || '';
-                const id = ev.id;
-                html += `
-                    <div class="event-item">
-                        <div class="info">
-                            <div class="name">🎉 ${nome}</div>
-                            <div class="detail">${resp} ${local ? '· ' + local : ''} ${hora ? '· ' + hora : ''}</div>
-                        </div>
-                        <div class="actions">
-                            <button data-id="${id}" class="edit-btn" title="Editar">✏️</button>
-                            <button data-id="${id}" class="delete-btn" title="Excluir">🗑️</button>
-                        </div>
+        let html = '';
+        const weekdays = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+        weekdays.forEach(w => { html += `<div class="weekday">${w}</div>`; });
+
+        const startOffset = firstDay;
+        for (let i = daysInPrevMonth - startOffset + 1; i <= daysInPrevMonth; i++) {
+            html += `<div class="day other-month">${i}</div>`;
+        }
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateKey = formatDateKey(year, month, d);
+            const isToday = dateKey === todayStr;
+            const hasEvent = eventsMap[dateKey] && eventsMap[dateKey].length > 0;
+            const isSelected = dateKey === selectedDate;
+            let classes = 'day';
+            if (isToday) classes += ' today';
+            if (hasEvent) classes += ' has-event';
+            if (isSelected) classes += ' selected';
+            html += `<div class="${classes}" data-date="${dateKey}">${d}</div>`;
+        }
+
+        const totalCells = startOffset + daysInMonth;
+        const remaining = (7 - (totalCells % 7)) % 7;
+        for (let d = 1; d <= remaining; d++) {
+            html += `<div class="day other-month">${d}</div>`;
+        }
+
+        calendarGrid.innerHTML = html;
+        monthYear.textContent = new Date(year, month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+        let count = 0;
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateKey = formatDateKey(year, month, d);
+            if (eventsMap[dateKey]) count += eventsMap[dateKey].length;
+        }
+        eventCount.textContent = count + ' evento' + (count !== 1 ? 's' : '');
+
+        document.querySelectorAll('.day:not(.other-month)').forEach(el => {
+            el.addEventListener('click', () => {
+                const date = el.dataset.date;
+                if (date) {
+                    selectedDate = date;
+                    renderCalendar(events, year, month);
+                    renderDayEvents(events, date);
+                }
+            });
+        });
+
+        if (selectedDate) {
+            renderDayEvents(events, selectedDate);
+        } else {
+            const firstEventDate = Object.keys(eventsMap).sort()[0];
+            if (firstEventDate) {
+                selectedDate = firstEventDate;
+                renderCalendar(events, year, month);
+            } else {
+                selectedDate = todayStr;
+                renderCalendar(events, year, month);
+            }
+        }
+    }
+
+    // ----- RENDER EVENTOS DO DIA -----
+    function renderDayEvents(events, dateKey) {
+        const filtered = events.filter(ev => ev.data === dateKey);
+
+        if (filtered.length === 0) {
+            dayEventsDiv.innerHTML = `<div class="empty">📭 Nenhum agendamento para ${formatDisplayDate(dateKey)}</div>`;
+            return;
+        }
+
+        let html = `<div style="margin-bottom:8px;font-weight:500;">📋 ${filtered.length} agendamento(s) em ${formatDisplayDate(dateKey)}</div>`;
+        filtered.forEach(ev => {
+            const nome = ev.aniversariante || 'Evento';
+            const resp = ev.responsavel || '';
+            const local = ev.local || '';
+            const hora = ev.hora_inicio || '';
+            const id = ev.id;
+            html += `
+                <div class="event-item">
+                    <div class="info" data-id="${id}">
+                        <div class="name">🎉 ${nome}</div>
+                        <div class="detail">${resp} ${local ? '· ' + local : ''} ${hora ? '· ' + hora : ''}</div>
                     </div>
-                `;
-            });
-            dayEventsDiv.innerHTML = html;
+                    <div class="actions">
+                        <button data-id="${id}" class="edit-btn" title="Editar">✏️</button>
+                        <button data-id="${id}" class="delete-btn" title="Excluir">🗑️</button>
+                    </div>
+                </div>
+            `;
+        });
+        dayEventsDiv.innerHTML = html;
 
-            document.querySelectorAll('.edit-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const id = btn.dataset.id;
-                    const ev = allEvents.find(e => e.id === id);
-                    if (ev) loadEventForEdit(ev);
-                });
+        // Clique no info abre modal de detalhes
+        document.querySelectorAll('.event-item .info').forEach(el => {
+            el.addEventListener('click', () => {
+                const id = el.dataset.id;
+                const ev = allEvents.find(e => e.id === id);
+                if (ev) openDetailModal(ev);
             });
-            document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    const id = btn.dataset.id;
-                    if (confirm('Excluir este agendamento?')) {
-                        try {
-                            await deleteDoc(doc(db, 'agendamentos', id));
-                            showToast('Excluído com sucesso');
-                            // snapshot atualiza
-                        } catch (e) {
-                            showToast('Erro ao excluir: ' + e.message);
-                            console.error(e);
-                        }
-                    }
-                });
-            });
-        }
+        });
 
-        // ----- CARREGAR PARA EDIÇÃO -----
-        function loadEventForEdit(ev) {
-            const container = fieldsContainer;
-            container.innerHTML = '';
-            DB_FIELDS.forEach(field => {
-                const value = ev[field] || '';
-                const div = document.createElement('div');
-                div.className = 'field' + (field === 'observacao' || field === 'obs' ? ' field-full' : '');
-                const label = document.createElement('label');
-                label.textContent = FIELD_LABELS[field] || field;
+        // Editar
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.dataset.id;
+                const ev = allEvents.find(e => e.id === id);
+                if (ev) loadEventForEdit(ev);
+            });
+        });
+
+        // Excluir
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = btn.dataset.id;
+                if (!confirm('Excluir este agendamento?')) return;
+                try {
+                    await deleteDoc(doc(db, 'agendamentos', id));
+                    showToast('Excluído com sucesso');
+                } catch (err) {
+                    showToast('Erro ao excluir: ' + err.message);
+                    console.error(err);
+                }
+            });
+        });
+    }
+
+    // ----- MODAL DE DETALHES -----
+    function openDetailModal(ev) {
+        let html = '';
+        DB_FIELDS.forEach(field => {
+            const value = ev[field] || '';
+            const label = FIELD_LABELS[field] || field;
+            const displayValue = value || '—';
+            html += `
+                <div class="modal-field">
+                    <div class="label">${label}</div>
+                    <div class="value ${value ? '' : 'empty'}">${displayValue}</div>
+                </div>
+            `;
+        });
+        modalBody.innerHTML = html;
+        detailModal.classList.add('open');
+    }
+
+    function closeDetailModal() {
+        detailModal.classList.remove('open');
+    }
+
+    modalClose.addEventListener('click', closeDetailModal);
+    detailModal.addEventListener('click', (e) => {
+        if (e.target === detailModal) closeDetailModal();
+    });
+
+    // ----- CARREGAR PARA EDIÇÃO -----
+    function loadEventForEdit(ev) {
+        const container = fieldsContainer;
+        container.innerHTML = '';
+        DB_FIELDS.forEach(field => {
+            const value = ev[field] || '';
+            const div = document.createElement('div');
+            div.className = 'field' + (field === 'observacao' || field === 'obs' ? ' field-full' : '');
+            const label = document.createElement('label');
+            label.textContent = FIELD_LABELS[field] || field;
+            if (field === 'observacao' || field === 'obs') {
+                const textarea = document.createElement('textarea');
+                textarea.rows = 2;
+                textarea.value = value;
+                textarea.id = 'field-' + field;
+                div.appendChild(label);
+                div.appendChild(textarea);
+            } else {
                 const input = document.createElement('input');
-                if (field === 'observacao' || field === 'obs') {
-                    const textarea = document.createElement('textarea');
-                    textarea.rows = 2;
-                    textarea.value = value;
-                    textarea.id = 'field-' + field;
-                    div.appendChild(label);
-                    div.appendChild(textarea);
-                } else {
-                    input.type = 'text';
-                    input.value = value;
-                    input.id = 'field-' + field;
-                    div.appendChild(label);
-                    div.appendChild(input);
-                }
-                container.appendChild(div);
-            });
-            previewCard.classList.remove('hidden');
-            saveBtn.textContent = '🔄 Atualizar';
-            editingId = ev.id;
-            previewCard.scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function collectPreviewData() {
-            const data = {};
-            DB_FIELDS.forEach(field => {
-                const el = document.getElementById('field-' + field);
-                if (el) data[field] = el.value.trim();
-            });
-            return data;
-        }
-
-        function resetPreview() {
-            previewCard.classList.add('hidden');
-            editingId = null;
-            saveBtn.textContent = '💾 Salvar';
-            fieldsContainer.innerHTML = '';
-        }
-
-        // ----- EVENTOS UI -----
-        parseBtn.addEventListener('click', () => {
-            const raw = rawInput.value.trim();
-            if (!raw) {
-                showToast('Cole uma mensagem primeiro');
-                return;
+                input.type = 'text';
+                input.value = value;
+                input.id = 'field-' + field;
+                div.appendChild(label);
+                div.appendChild(input);
             }
-            const parsed = parseMessage(raw);
-            const container = fieldsContainer;
-            container.innerHTML = '';
-            DB_FIELDS.forEach(field => {
-                const value = parsed[field] || '';
-                const div = document.createElement('div');
-                div.className = 'field' + (field === 'observacao' || field === 'obs' ? ' field-full' : '');
-                const label = document.createElement('label');
-                label.textContent = FIELD_LABELS[field] || field;
+            container.appendChild(div);
+        });
+        previewCard.classList.remove('hidden');
+        saveBtn.textContent = '🔄 Atualizar';
+        editingId = ev.id;
+        previewCard.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function collectPreviewData() {
+        const data = {};
+        DB_FIELDS.forEach(field => {
+            const el = document.getElementById('field-' + field);
+            if (el) data[field] = el.value.trim();
+        });
+        return data;
+    }
+
+    function resetPreview() {
+        previewCard.classList.add('hidden');
+        editingId = null;
+        saveBtn.textContent = '💾 Salvar';
+        fieldsContainer.innerHTML = '';
+    }
+
+    // ----- EVENTOS UI -----
+    parseBtn.addEventListener('click', () => {
+        const raw = rawInput.value.trim();
+        if (!raw) { showToast('Cole uma mensagem primeiro'); return; }
+        const parsed = parseMessage(raw);
+        const container = fieldsContainer;
+        container.innerHTML = '';
+        DB_FIELDS.forEach(field => {
+            const value = parsed[field] || '';
+            const div = document.createElement('div');
+            div.className = 'field' + (field === 'observacao' || field === 'obs' ? ' field-full' : '');
+            const label = document.createElement('label');
+            label.textContent = FIELD_LABELS[field] || field;
+            if (field === 'observacao' || field === 'obs') {
+                const textarea = document.createElement('textarea');
+                textarea.rows = 2;
+                textarea.value = value;
+                textarea.id = 'field-' + field;
+                div.appendChild(label);
+                div.appendChild(textarea);
+            } else {
                 const input = document.createElement('input');
-                if (field === 'observacao' || field === 'obs') {
-                    const textarea = document.createElement('textarea');
-                    textarea.rows = 2;
-                    textarea.value = value;
-                    textarea.id = 'field-' + field;
-                    div.appendChild(label);
-                    div.appendChild(textarea);
-                } else {
-                    input.type = 'text';
-                    input.value = value;
-                    input.id = 'field-' + field;
-                    div.appendChild(label);
-                    div.appendChild(input);
-                }
-                container.appendChild(div);
+                input.type = 'text';
+                input.value = value;
+                input.id = 'field-' + field;
+                div.appendChild(label);
+                div.appendChild(input);
+            }
+            container.appendChild(div);
+        });
+        previewCard.classList.remove('hidden');
+        saveBtn.textContent = '💾 Salvar';
+        editingId = null;
+        previewCard.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    cancelPreviewBtn.addEventListener('click', resetPreview);
+
+    saveBtn.addEventListener('click', async () => {
+        if (isSaving) return;
+        const data = collectPreviewData();
+        const hasData = DB_FIELDS.some(f => data[f] && data[f].trim() !== '');
+        if (!hasData) { showToast('Preencha ao menos um campo'); return; }
+
+        // Normaliza data antes de salvar
+        if (data.data) {
+            const normalized = normalizeDate(data.data);
+            if (normalized) data.data = normalized;
+        }
+
+        isSaving = true;
+        saveBtn.disabled = true;
+        try {
+            if (editingId) {
+                await updateDoc(doc(db, 'agendamentos', editingId), data);
+                showToast('Atualizado!');
+            } else {
+                await addDoc(eventsCollection, data);
+                showToast('Salvo!');
+            }
+            resetPreview();
+            rawInput.value = '';
+        } catch (err) {
+            showToast('Erro: ' + err.message);
+            console.error(err);
+        } finally {
+            isSaving = false;
+            saveBtn.disabled = false;
+        }
+    });
+
+    prevMonthBtn.addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        renderCalendar(allEvents, currentDate.getFullYear(), currentDate.getMonth());
+    });
+    nextMonthBtn.addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        renderCalendar(allEvents, currentDate.getFullYear(), currentDate.getMonth());
+    });
+
+    // Forçar sincronização
+    forceSyncBtn.addEventListener('click', () => {
+        showToast('Recarregando...');
+        if (unsubscribe) {
+            unsubscribe();
+            unsubscribe = null;
+        }
+        initFirebaseListener();
+    });
+
+    // ----- FIREBASE LISTENER -----
+    function initFirebaseListener() {
+        const q = query(eventsCollection, orderBy('data'));
+        unsubscribe = onSnapshot(q, (snapshot) => {
+            const events = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                data.id = doc.id;
+                events.push(data);
             });
-            previewCard.classList.remove('hidden');
-            saveBtn.textContent = '💾 Salvar';
-            editingId = null;
-            previewCard.scrollIntoView({ behavior: 'smooth' });
-        });
-
-        cancelPreviewBtn.addEventListener('click', resetPreview);
-
-        saveBtn.addEventListener('click', async () => {
-            const data = collectPreviewData();
-            const hasData = DB_FIELDS.some(f => data[f] && data[f].trim() !== '');
-            if (!hasData) {
-                showToast('Preencha ao menos um campo');
-                return;
-            }
-            try {
-                if (editingId) {
-                    await updateDoc(doc(db, 'agendamentos', editingId), data);
-                    showToast('Agendamento atualizado!');
-                } else {
-                    await addDoc(eventsCollection, data);
-                    showToast('Agendamento salvo!');
-                }
-                resetPreview();
-                rawInput.value = '';
-            } catch (e) {
-                showToast('Erro ao salvar: ' + e.message);
-                console.error(e);
-            }
-        });
-
-        prevMonthBtn.addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() - 1);
-            renderCalendar(allEvents, currentDate.getFullYear(), currentDate.getMonth());
-        });
-        nextMonthBtn.addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            renderCalendar(allEvents, currentDate.getFullYear(), currentDate.getMonth());
-        });
-
-        // ----- SINCRONIZAÇÃO MANUAL (FORÇAR RECARGA) -----
-        forceSyncBtn.addEventListener('click', async () => {
-            showToast('Forçando sincronização...');
-            try {
-                // Desconectar e reconectar o snapshot? Vamos apenas recarregar manualmente
+            allEvents = events;
+            renderCalendar(events, currentDate.getFullYear(), currentDate.getMonth());
+            setSyncStatus('online');
+        }, (error) => {
+            console.error('Firebase error:', error);
+            setSyncStatus('error');
+            showToast('Erro de sincronização: ' + error.message);
+            // Tenta reconectar após 10s
+            setTimeout(() => {
                 if (unsubscribe) {
                     unsubscribe();
                     unsubscribe = null;
                 }
-                // Nova consulta
-                const q = query(eventsCollection, orderBy('data'));
-                unsubscribe = onSnapshot(q, (snapshot) => {
-                    const events = [];
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        data.id = doc.id;
-                        events.push(data);
-                    });
-                    allEvents = events;
-                    renderCalendar(events, currentDate.getFullYear(), currentDate.getMonth());
-                    setSyncStatus('online');
-                    showToast('Sincronizado!', 1200);
-                }, (error) => {
-                    console.error('Erro no snapshot:', error);
-                    setSyncStatus('error');
-                    showToast('Erro de conexão: ' + error.message);
-                });
-            } catch (e) {
-                showToast('Erro: ' + e.message);
-            }
+                initFirebaseListener();
+            }, 10000);
         });
+    }
 
-        // ----- INICIALIZAÇÃO FIREBASE (snapshot) -----
-        function initFirebaseListener() {
-            // Consulta sem orderBy para evitar erros se alguns docs não tiverem campo 'data'
-            // Mas podemos usar orderBy com tratamento
-            const q = query(eventsCollection, orderBy('data'));
-            unsubscribe = onSnapshot(q, (snapshot) => {
-                const events = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    data.id = doc.id;
-                    events.push(data);
-                });
-                allEvents = events;
-                console.log('Eventos recebidos do Firebase:', events.length);
-                renderCalendar(events, currentDate.getFullYear(), currentDate.getMonth());
-                setSyncStatus('online');
-                // Não mostrar toast a cada atualização para não poluir
-            }, (error) => {
-                console.error('Erro no snapshot:', error);
-                setSyncStatus('error');
-                showToast('Erro de sincronização: ' + error.message);
-                // Tenta novamente após 5 segundos?
-                setTimeout(() => {
-                    if (unsubscribe) {
-                        unsubscribe();
-                        unsubscribe = null;
-                    }
-                    initFirebaseListener();
-                }, 5000);
-            });
-        }
+    // ----- INICIALIZAÇÃO -----
+    const now = new Date();
+    currentDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    const todayStr = formatDateKey(now.getFullYear(), now.getMonth(), now.getDate());
+    selectedDate = todayStr;
 
-        // ----- INICIALIZAÇÃO -----
-        const now = new Date();
-        currentDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        const todayStr = formatDateKey(now.getFullYear(), now.getMonth(), now.getDate());
-        selectedDate = todayStr;
+    initFirebaseListener();
 
-        // Inicia listener
-        initFirebaseListener();
-
-        console.log('App iniciado. Aguardando dados do Firebase...');
-    </script>
+    // Se houver erro de permissão, o usuário pode usar apenas local? Vamos fornecer fallback com IndexedDB?
+    // Mas como o Firebase está com erro de permissão, o app pode não salvar. Vou adicionar um aviso.
+    // O usuário deve ajustar as regras do Firebase para permitir leitura/escrita.
+    console.log('App iniciado. Para evitar erros de permissão, configure as regras do Firestore:');
+    console.log('rules_version = "2";');
+    console.log('service cloud.firestore {');
+    console.log('  match /databases/{database}/documents {');
+    console.log('    match /{document=**} {');
+    console.log('      allow read, write: if true;');
+    console.log('    }');
+    console.log('  }');
+    console.log('}');
+    console.log('Ou implemente autenticação.');
+</script>
 </body>
 </html>
