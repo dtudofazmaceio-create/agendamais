@@ -764,14 +764,14 @@ const SINONIMOS = {
   aniversariante: ["aniversariante","aniversariante(a)","aniversário","aniversario","niver","festejante","festejado","festejada","homenageado","homenageada","debutante","cliente"],
   responsavel:    ["responsavel","responsável","resp","atendente","vendedor"],
   celular:        ["celular","cel","telefone","tel","whatsapp","fone","contato"],
-  tema:           ["tema","decoração","decoracao","tematica","temática"],
-  local:          ["local","endereço","endereco","salão","salao","espaço","espaco"],
+  tema:           ["tema","decoração","decoracao","tematica","temática","princesas","personagem"],
+  local:          ["local","endereço","endereco","salão","salao","espaço","espaco","espaço festa","espaco festa"],
   pacote:         ["pacote","plano","serviço","servico"],
-  hora_inicio:    ["hora","horário","horario","início","inicio","hr"],
+  hora_inicio:    ["hora que a turma","hora da turma","hora que turma","hora de inicio","hora inicio","hora de início","horário de início","horário inicio","hora","horário","horario","início","inicio","hr"],
   valor_restante: ["valor restante","valor_restante","restante","falta","saldo","a pagar","pendente"],
   valor_pago:     ["valor pago","valor_pago","valor","pagamento","pago","sinal","entrada","preço","preco"],
   data:           ["data","dia"],
-  observacao:     ["observação","observacao","obs","notas","nota"]
+  observacao:     ["observação","observacao","obs","notas","nota","observacão"]
 };
 // lista plana [campo, sinônimo] ordenada do sinônimo MAIS LONGO p/ o mais curto
 const SIN_FLAT = Object.entries(SINONIMOS)
@@ -835,6 +835,36 @@ function parseMessage(text){
       }
       if(casou) continue;
     }
+
+    // (a.2) sem dois-pontos: tenta "chave valor" (sinônimo seguido de espaço + valor)
+    if(!casou){
+      const linhaNorm = linha.toLowerCase();
+      for(const [campo, sin] of SIN_FLAT){
+        // só tenta sinônimos com pelo menos 3 chars para evitar falsos positivos
+        if(sin.length < 3) continue;
+        if(linhaNorm.startsWith(sin)){
+          const resto = linha.slice(sin.length).trim();
+          // o resto não pode ser vazio
+          if(resto){
+            // para hora_inicio, exige que contenha um padrão de hora
+            if(campo === "hora_inicio" && !REGEX_HORA.test(resto)) continue;
+            // para valor_pago/restante, exige número
+            if((campo === "valor_pago" || campo === "valor_restante") && !/\d/.test(resto)) continue;
+            // para data, precisa de padrão de data
+            if(campo === "data" && !parseDateFromString(resto)) continue;
+            // se valor_pago já preenchido e campo é valor_pago, tenta valor_restante
+            if(campo === "valor_pago" && out.valor_pago){
+              if(!out.valor_restante){ aplicaCampo(out, "valor_restante", resto); casou = true; break; }
+              else { extras.push(linha); casou = true; break; }
+            }
+            aplicaCampo(out, campo, resto);
+            casou = true; break;
+          }
+        }
+      }
+    }
+
+    if(casou) continue;
 
     // (b) sem rótulo: detecta por padrão
     const dataDetectada = parseDateFromString(linha);
