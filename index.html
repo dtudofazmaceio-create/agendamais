@@ -546,8 +546,11 @@
 <!-- TOAST -->
 <div id="toast" class="toast"></div>
 
-<!-- ELEMENTO PARA PDF (visível para captura) -->
-<div id="pdfContent" style="position:absolute; left:-9999px; top:0; width:800px; background:white; padding:40px; font-family: 'Inter', sans-serif; color:#0a1e2f;"></div>
+<!-- ELEMENTO PARA PDF (precisa estar dentro da área visível do viewport
+     para o html2canvas conseguir capturar o conteúdo corretamente; por
+     isso usamos z-index negativo + opacidade 0 em vez de left:-9999px,
+     que fazia o PDF sair em branco) -->
+<div id="pdfContent" style="position:fixed; left:0; top:0; width:800px; background:white; padding:40px; font-family: 'Inter', sans-serif; color:#0a1e2f; opacity:0; z-index:-1; pointer-events:none;"></div>
 
 <script type="module">
     // ============================================================
@@ -1220,17 +1223,26 @@
         const pdfElement = document.getElementById('pdfContent');
         pdfElement.innerHTML = contentHTML;
 
+        // BUG CORRIGIDO: o html2canvas pode capturar em branco elementos
+        // com opacity:0 ou fora do viewport. Tornamos o elemento
+        // temporariamente visível (mas com z-index negativo, então não
+        // aparece sobre o resto da página) só durante a geração do PDF.
+        pdfElement.style.opacity = '1';
+
         // Configuração do PDF
         const opt = {
             margin:        [0.5, 0.5, 0.5, 0.5], // em polegadas
             filename:     `relatorio_agendamentos_${start}_a_${end}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, letterRendering: true, useCORS: true, logging: false },
+            html2canvas:  { scale: 2, letterRendering: true, useCORS: true, logging: false, backgroundColor: '#ffffff' },
             jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
 
         try {
             showToast('Gerando PDF...', 3000);
+            // Pequeno delay para garantir que o navegador finalizou o
+            // reflow/paint do conteúdo antes do html2canvas capturar.
+            await new Promise(resolve => setTimeout(resolve, 100));
             await html2pdf().set(opt).from(pdfElement).save();
             showToast('PDF gerado com sucesso!');
         } catch (error) {
@@ -1238,6 +1250,7 @@
             showToast('Erro ao gerar PDF: ' + error.message);
         } finally {
             pdfElement.innerHTML = '';
+            pdfElement.style.opacity = '0';
         }
     });
 
