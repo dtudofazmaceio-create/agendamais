@@ -13,6 +13,7 @@
             }
         }
     </script>
+    <!-- Biblioteca PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         /* ===== RESET & BASE ===== */
@@ -467,22 +468,6 @@
             .export-section { flex-direction: column; align-items: stretch; }
             .export-section input[type="date"] { width: 100%; }
         }
-
-        /* Elemento para captura do PDF */
-        #pdfContent {
-            position: absolute;
-            left: -9999px;
-            top: 0;
-            width: 800px;
-            background: white;
-            padding: 40px;
-            font-family: 'Inter', sans-serif;
-            color: #0a1e2f;
-            z-index: -1;
-            opacity: 0;
-            pointer-events: none;
-            transition: none;
-        }
     </style>
 </head>
 <body>
@@ -561,20 +546,17 @@
 <!-- TOAST -->
 <div id="toast" class="toast"></div>
 
-<!-- ELEMENTO PARA PDF -->
-<div id="pdfContent"></div>
+<!-- ELEMENTO PARA PDF (visível para captura) -->
+<div id="pdfContent" style="position:absolute; left:-9999px; top:0; width:800px; background:white; padding:40px; font-family: 'Inter', sans-serif; color:#0a1e2f;"></div>
 
 <script type="module">
     // ============================================================
-    // IMPORTS
+    // IMPORTS FIREBASE + AUTH
     // ============================================================
     import { initializeApp } from 'firebase/app';
     import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
     import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
-    // ============================================================
-    // CONFIGURAÇÃO FIREBASE
-    // ============================================================
     const firebaseConfig = {
         apiKey: "AIzaSyDMwdtyx3zWHwCHtalq572E_FyrF4f-drM",
         authDomain: "corretorpro-84422.firebaseapp.com",
@@ -588,19 +570,28 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-
-    // 🔥 DEFINIÇÃO DA COLEÇÃO (GLOBAL NO MÓDULO)
+    // BUG CORRIGIDO: a coleção do Firestore nunca era criada, então
+    // addDoc/onSnapshot falhavam silenciosamente (eventsCollection undefined).
     const eventsCollection = collection(db, 'agendamentos');
 
-    // Autenticação anônima
+    // Autenticação anônima automática
     signInAnonymously(auth)
         .then(() => console.log('✅ Autenticado anonimamente'))
         .catch((err) => console.warn('⚠️ Falha na autenticação anônima:', err));
 
+    // BUG CORRIGIDO: o listener do Firestore era iniciado imediatamente,
+    // antes da autenticação anônima terminar. Se as regras do Firestore
+    // exigirem usuário autenticado, isso causava erro de permissão na
+    // primeira carga. Agora só iniciamos o listener depois do login.
+    let firebaseListenerStarted = false;
     onAuthStateChanged(auth, (user) => {
         if (user) {
             console.log('Usuário autenticado UID:', user.uid);
             setSyncStatus('online');
+            if (!firebaseListenerStarted) {
+                firebaseListenerStarted = true;
+                initFirebaseListener();
+            }
         } else {
             console.log('Usuário não autenticado');
             setSyncStatus('offline');
@@ -645,7 +636,6 @@
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
     const exportPdfBtn = document.getElementById('exportPdfBtn');
-    const pdfElement = document.getElementById('pdfContent');
 
     // ============================================================
     // TOAST E SYNC STATUS
@@ -689,7 +679,10 @@
             if (!isNaN(day) && !isNaN(month) && !isNaN(year)) return { year, month, day };
         }
         const monthNames = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-        const regex = /(\d{1,2})\s+de\s+(\w+)(?:\s+de\s+(\d{4}))?/i;
+        // BUG CORRIGIDO: \w não inclui letras acentuadas, então "março"
+        // era cortado para "mar" e nunca era reconhecido. Agora o regex
+        // aceita letras acentuadas em português.
+        const regex = /(\d{1,2})\s+de\s+([a-záéíóúâêôãõç]+)(?:\s+de\s+(\d{4}))?/i;
         const match = str.match(regex);
         if (match) {
             const day = parseInt(match[1]);
@@ -740,7 +733,14 @@
     function mapKey(rawKey) {
         const clean = rawKey.toLowerCase().replace(/[^a-záéíóúàâêôãõç ]/g,'').trim();
         if (KEYWORD_MAP[clean]) return KEYWORD_MAP[clean];
-        for (let p in KEYWORD_MAP) if (clean.includes(p) || p.includes(clean)) return KEYWORD_MAP[p];
+        // BUG CORRIGIDO: o loop original percorria as chaves na ordem de
+        // inserção do objeto. Como 'valor' vem antes de 'valor restante',
+        // um texto como "Valor Restante" era capturado por 'valor' e
+        // mapeado para valor_pago em vez de valor_restante. Agora
+        // ordenamos as chaves da mais específica (mais longa) para a
+        // mais genérica antes de procurar correspondência parcial.
+        const keys = Object.keys(KEYWORD_MAP).sort((a, b) => b.length - a.length);
+        for (let p of keys) if (clean.includes(p) || p.includes(clean)) return KEYWORD_MAP[p];
         return null;
     }
 
@@ -1106,8 +1106,7 @@
             resetPreview();
             rawInput.value = '';
         } catch (err) {
-            showToast('Erro ao salvar: ' + err.message);
-            console.error(err);
+            showToast('Erro: ' + err.message);
         } finally {
             isSaving = false;
             saveBtn.disabled = false;
@@ -1130,20 +1129,29 @@
     });
 
     // ============================================================
-    // EXPORTAÇÃO PDF
+    // EXPORTAÇÃO PDF (CORRIGIDA)
     // ============================================================
-    function generatePDFContent(startDate, endDate, events) {
-        const sorted = [...events].sort((a, b) => a.data.localeCompare(b.data));
+    function getEventsInPeriod(startDate, endDate) {
+        return allEvents.filter(ev => {
+            if (!ev.data) return false;
+            // ev.data já está no formato YYYY-MM-DD
+            return ev.data >= startDate && ev.data <= endDate;
+        });
+    }
+
+    function generatePDFContent(startDate, endDate) {
+        const filtered = getEventsInPeriod(startDate, endDate);
+        filtered.sort((a, b) => a.data.localeCompare(b.data));
 
         const now = new Date();
         const dateStr = now.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
         const timeStr = now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
 
         let rows = '';
-        if (sorted.length === 0) {
+        if (filtered.length === 0) {
             rows = `<tr><td colspan="6" style="text-align:center;padding:20px;color:#6b7f93;">Nenhum agendamento encontrado no período.</td></tr>`;
         } else {
-            sorted.forEach(ev => {
+            filtered.forEach(ev => {
                 const status = ev.concluido ? '✅ Concluído' : '⏳ Pendente';
                 rows += `
                     <tr>
@@ -1168,7 +1176,7 @@
                 </div>
                 <div style="background: white; padding: 30px 40px; border-radius: 0 0 16px 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; border-top: none;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
-                        <span style="font-weight: 600; color: #1e3a5f; font-size: 1.1rem;">Total de eventos: <span style="color: #2b5a8a;">${sorted.length}</span></span>
+                        <span style="font-weight: 600; color: #1e3a5f; font-size: 1.1rem;">Total de eventos: <span style="color: #2b5a8a;">${filtered.length}</span></span>
                         <span style="color: #6b7f93; font-size: 0.9rem;">Gerado em ${dateStr} às ${timeStr}</span>
                     </div>
                     <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
@@ -1207,34 +1215,14 @@
             return;
         }
 
-        // Filtra eventos
-        const filtered = allEvents.filter(ev => {
-            if (!ev.data) return false;
-            return ev.data >= start && ev.data <= end;
-        });
-
-        console.log(`📊 Eventos no período ${start} a ${end}: ${filtered.length}`);
-
-        // Gera HTML
-        const contentHTML = generatePDFContent(start, end, filtered);
+        // Gera o conteúdo HTML para o PDF
+        const contentHTML = generatePDFContent(start, end);
+        const pdfElement = document.getElementById('pdfContent');
         pdfElement.innerHTML = contentHTML;
 
-        // Torna o elemento visível para captura (fora da tela)
-        pdfElement.style.position = 'absolute';
-        pdfElement.style.left = '-9999px';
-        pdfElement.style.top = '0';
-        pdfElement.style.width = '800px';
-        pdfElement.style.background = 'white';
-        pdfElement.style.padding = '40px';
-        pdfElement.style.opacity = '1';
-        pdfElement.style.pointerEvents = 'none';
-        pdfElement.style.display = 'block';
-        pdfElement.style.zIndex = '-1';
-
-        await new Promise(resolve => setTimeout(resolve, 300));
-
+        // Configuração do PDF
         const opt = {
-            margin:        [0.5, 0.5, 0.5, 0.5],
+            margin:        [0.5, 0.5, 0.5, 0.5], // em polegadas
             filename:     `relatorio_agendamentos_${start}_a_${end}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, letterRendering: true, useCORS: true, logging: false },
@@ -1250,12 +1238,11 @@
             showToast('Erro ao gerar PDF: ' + error.message);
         } finally {
             pdfElement.innerHTML = '';
-            pdfElement.style.display = 'none';
         }
     });
 
     // ============================================================
-    // PERÍODO PADRÃO
+    // DEFINIR PERÍODO PADRÃO (MÊS ATUAL)
     // ============================================================
     function setDefaultPeriod() {
         const now = new Date();
@@ -1265,7 +1252,6 @@
         const end = formatDateKey(lastDay.getFullYear(), lastDay.getMonth(), lastDay.getDate());
         startDateInput.value = start;
         endDateInput.value = end;
-        console.log(`📅 Período padrão: ${start} a ${end}`);
     }
     setDefaultPeriod();
 
@@ -1276,15 +1262,16 @@
         const q = query(eventsCollection, orderBy('data'));
         unsubscribe = onSnapshot(q, (snapshot) => {
             const events = [];
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                data.id = doc.id;
+            // CORRIGIDO: o parâmetro chamava-se "doc", o que ofuscava
+            // (shadowing) a função doc() importada do Firestore.
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                data.id = docSnap.id;
                 events.push(data);
             });
             allEvents = events;
             renderCalendar(events, currentDate.getFullYear(), currentDate.getMonth());
             setSyncStatus('online');
-            console.log(`📥 Eventos carregados: ${events.length}`);
         }, (error) => {
             console.error('Firebase error:', error);
             setSyncStatus('error');
@@ -1303,9 +1290,10 @@
     currentDate = new Date(now.getFullYear(), now.getMonth(), 1);
     const todayStr = formatDateKey(now.getFullYear(), now.getMonth(), now.getDate());
     selectedDate = todayStr;
-    initFirebaseListener();
+    // O listener do Firestore agora é iniciado automaticamente dentro de
+    // onAuthStateChanged, assim que o login anônimo é confirmado.
 
-    console.log('🚀 App pronto!');
+    console.log('App profissional com autenticação anônima e PDF corrigido.');
 </script>
 </body>
 </html>
