@@ -1,1312 +1,1500 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Agenda Profissional</title>
-    <script type="importmap">
-        {
-            "imports": {
-                "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
-                "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js",
-                "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"
-            }
-        }
-    </script>
-    <!-- Biblioteca PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <style>
-        /* ===== RESET & BASE ===== */
-        * { margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-        body {
-            background: #f1f5f9;
-            color: #0a1e2f;
-            padding: 16px;
-        }
-        .container { max-width: 720px; margin: 0 auto; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agenda Profissional</title>
 
-        /* ===== HEADER ===== */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .header h1 {
-            font-size: 1.8rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #1e3a5f, #2b5a8a);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .header h1::before { content: '📋'; -webkit-text-fill-color: initial; }
-        .sync-status {
-            background: #e9edf2;
-            padding: 6px 16px;
-            border-radius: 40px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: #1e3a5f;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .dot { width: 10px; height:10px; border-radius:50%; display:inline-block; }
-        .dot.online { background: #2ecc71; }
-        .dot.offline { background: #f39c12; }
-        .dot.error { background: #e74c3c; }
-        .btn-sync {
-            background: none;
-            border: none;
-            font-size: 1.1rem;
-            cursor: pointer;
-            color: #1e3a5f;
-            padding: 0 4px;
-        }
+<!-- Inter via fonte do sistema com fallback; se houver internet, usa a do Google -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-        /* ===== CARDS ===== */
-        .card {
-            background: #ffffff;
-            border-radius: 24px;
-            padding: 20px;
-            margin-bottom: 24px;
-            box-shadow: 0 8px 30px rgba(0,20,40,0.06);
-            border: 1px solid #e2e8f0;
-        }
-        .card-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #1e3a5f;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .badge {
-            background: #dde7f5;
-            color: #1e3a5f;
-            font-size: 0.7rem;
-            padding: 2px 12px;
-            border-radius: 30px;
-            font-weight: 500;
-        }
+<!-- html2pdf para gerar PDF e SheetJS (xlsx) para planilha -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-        /* ===== CALENDÁRIO ===== */
-        .calendar-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-        }
-        .calendar-nav button {
-            background: none;
-            border: none;
-            font-size: 1.3rem;
-            color: #1e3a5f;
-            padding: 0 12px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .calendar-nav button:hover { color: #2b5a8a; }
-        .month-year {
-            font-weight: 600;
-            font-size: 1.2rem;
-            color: #0a1e2f;
-        }
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-            text-align: center;
-        }
-        .weekday {
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: #6b7f93;
-            padding: 6px 0;
-        }
-        .day {
-            aspect-ratio: 1/1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border-radius: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            background: transparent;
-            transition: 0.15s;
-            position: relative;
-            font-size: 0.9rem;
-        }
-        .day:hover { background: #edf2f7; }
-        .day.other-month { color: #b8c9dc; }
-        .day.today { background: #e6edf6; font-weight: 700; }
-        .day.has-event::after {
-            content: '';
-            width: 6px;
-            height: 6px;
-            background: #2b5a8a;
-            border-radius: 50%;
-            position: absolute;
-            bottom: 4px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-        .day.has-event.done::after { background: #2ecc71; }
-        .day.selected { background: #1e3a5f; color: white; }
-        .day.selected.has-event::after { background: white; }
+<!-- ===========================================================================
+     IMPORTMAP — Firebase 10.12.2 carregado direto da CDN (sem build).
+     Mapeia os nomes "firebase/..." para os módulos da gstatic.
+     =========================================================================== -->
+<script type="importmap">
+{
+  "imports": {
+    "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"
+  }
+}
+</script>
 
-        /* Lista de eventos do dia */
-        .day-events {
-            margin-top: 16px;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 16px;
-        }
-        .day-events .empty {
-            color: #8a9bb0;
-            text-align: center;
-            padding: 12px 0;
-        }
-        .event-item {
-            background: #f8fafc;
-            border-radius: 16px;
-            padding: 14px;
-            margin-bottom: 10px;
-            border-left: 4px solid #2b5a8a;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: 0.2s;
-        }
-        .event-item.done { border-left-color: #2ecc71; background: #f0faf4; }
-        .event-item .info {
-            flex: 1;
-            cursor: pointer;
-        }
-        .event-item .info .name {
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .event-item .info .name .status-badge {
-            font-size: 0.6rem;
-            background: #e2e8f0;
-            padding: 1px 10px;
-            border-radius: 30px;
-            color: #4a5b72;
-        }
-        .event-item .info .name .status-badge.done {
-            background: #2ecc71;
-            color: white;
-        }
-        .event-item .info .detail {
-            font-size: 0.8rem;
-            color: #4a5b72;
-        }
-        .event-item .actions {
-            display: flex;
-            gap: 6px;
-        }
-        .event-item .actions button {
-            background: none;
-            border: none;
-            font-size: 1.1rem;
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 20px;
-            transition: 0.2s;
-        }
-        .event-item .actions button:hover { background: #e2e8f0; }
+<style>
+/* ============================== TOKENS / TEMA ============================== */
+:root{
+  --navy-1:#1e3a5f;          /* início do gradiente */
+  --navy-2:#2b5a8a;          /* fim do gradiente */
+  --bg:#f1f5f9;              /* fundo da aplicação */
+  --surface:#ffffff;
+  --surface-2:#f8fafc;
+  --border:#e2e8f0;
+  --text:#0f172a;
+  --text-soft:#475569;
+  --text-mute:#94a3b8;
+  --success:#16a34a;         /* verde = sucesso/concluído */
+  --success-soft:#dcfce7;
+  --danger:#dc2626;          /* vermelho = excluir/erro */
+  --danger-soft:#fee2e2;
+  --warning:#d97706;
+  --warning-soft:#fef3c7;
+  --accent:#2563eb;          /* azul = evento/dia com agendamento */
+  --accent-soft:#dbeafe;
+  --radius:16px;
+  --radius-sm:10px;
+  --shadow:0 1px 3px rgba(15,23,42,.08), 0 8px 24px rgba(15,23,42,.06);
+  --shadow-lg:0 12px 40px rgba(15,23,42,.18);
+  --font:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
 
-        /* ===== MODAL ===== */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(10,30,47,0.5);
-            backdrop-filter: blur(6px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 20px;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-        .modal-overlay.open { opacity: 1; pointer-events: auto; }
-        .modal {
-            background: white;
-            border-radius: 32px;
-            max-width: 560px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            padding: 32px;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.15);
-            transform: scale(0.95);
-            transition: transform 0.3s;
-        }
-        .modal-overlay.open .modal { transform: scale(1); }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 16px;
-        }
-        .modal-header h2 {
-            font-size: 1.4rem;
-            color: #0a1e2f;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .modal-header .status-badge {
-            font-size: 0.7rem;
-            font-weight: 600;
-            padding: 4px 14px;
-            border-radius: 30px;
-            background: #e2e8f0;
-            color: #4a5b72;
-        }
-        .modal-header .status-badge.done {
-            background: #2ecc71;
-            color: white;
-        }
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 1.8rem;
-            color: #6b7f93;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .modal-close:hover { color: #0a1e2f; }
-        .modal-body {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px 20px;
-        }
-        .modal-field {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            padding: 6px 0;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .modal-field .label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-            color: #6b7f93;
-        }
-        .modal-field .value {
-            font-size: 0.95rem;
-            color: #0a1e2f;
-            font-weight: 500;
-            word-break: break-word;
-        }
-        .modal-field .value.empty { color: #b8c9dc; font-weight: 400; }
-        .modal-field.full { grid-column: 1 / -1; }
-        .modal-actions {
-            margin-top: 24px;
-            display: flex;
-            gap: 12px;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 20px;
-            flex-wrap: wrap;
-        }
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 10px 20px;
-            border-radius: 40px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            border: none;
-            cursor: pointer;
-            transition: 0.2s;
-            flex: 1;
-            min-width: 120px;
-        }
-        .btn:active { transform: scale(0.96); }
-        .btn-primary { background: #1e3a5f; color: white; }
-        .btn-primary:hover { background: #2b5a8a; }
-        .btn-success { background: #2ecc71; color: white; }
-        .btn-success:hover { background: #27ae60; }
-        .btn-secondary { background: #e2e8f0; color: #1e3a5f; }
-        .btn-secondary:hover { background: #d0d8e3; }
-        .btn-danger { background: #e74c3c; color: white; }
-        .btn-danger:hover { background: #c0392b; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer;}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px;}
+.hidden{display:none !important;}
 
-        /* ===== FORMULÁRIO ===== */
-        textarea {
-            width: 100%;
-            min-height: 120px;
-            padding: 14px;
-            border: 1px solid #d0d8e3;
-            border-radius: 16px;
-            font-size: 0.95rem;
-            background: #fafcff;
-            resize: vertical;
-            transition: 0.2s;
-        }
-        textarea:focus {
-            outline: none;
-            border-color: #2b5a8a;
-            box-shadow: 0 0 0 3px rgba(43,90,138,0.12);
-        }
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 12px;
-        }
-        .btn-group .btn { flex: 1; }
+/* ============================== TELA DE LOGIN ============================== */
+#authScreen{
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+  background:linear-gradient(135deg,var(--navy-1),var(--navy-2));
+}
+.auth-card{
+  width:100%;max-width:400px;background:var(--surface);
+  border-radius:var(--radius);box-shadow:var(--shadow-lg);
+  padding:32px 28px;
+}
+.auth-card h1{margin:0 0 4px;font-size:24px;font-weight:800;letter-spacing:-.02em;}
+.auth-card .sub{color:var(--text-soft);margin:0 0 24px;font-size:14px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--text-soft);margin-bottom:6px;}
+.field input{
+  width:100%;padding:12px 14px;border:1px solid var(--border);
+  border-radius:var(--radius-sm);font-size:15px;background:var(--surface-2);
+}
+.field input:focus{background:#fff;border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft);}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:12px 16px;border:none;border-radius:var(--radius-sm);
+  font-size:15px;font-weight:600;transition:filter .15s, transform .05s;
+}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:linear-gradient(135deg,var(--navy-1),var(--navy-2));color:#fff;width:100%;}
+.btn-primary:hover{filter:brightness(1.08);}
+.btn-google{background:#fff;color:var(--text);border:1px solid var(--border);width:100%;margin-top:10px;}
+.btn-google:hover{background:var(--surface-2);}
+.auth-toggle{text-align:center;margin-top:18px;font-size:14px;color:var(--text-soft);}
+.auth-toggle button{background:none;border:none;color:var(--accent);font-weight:600;font-size:14px;padding:0;}
+.auth-error{
+  background:var(--danger-soft);color:var(--danger);font-size:13px;font-weight:500;
+  padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:14px;
+}
+.divider{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--text-mute);font-size:12px;}
+.divider::before,.divider::after{content:"";height:1px;flex:1;background:var(--border);}
 
-        .extracted-fields {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px 16px;
-            margin: 16px 0;
-        }
-        .field {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        .field label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: #6b7f93;
-        }
-        .field input, .field textarea {
-            padding: 8px 12px;
-            border: 1px solid #d0d8e3;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            background: #fafcff;
-        }
-        .field input:focus, .field textarea:focus {
-            outline: none;
-            border-color: #2b5a8a;
-        }
-        .field-full { grid-column: 1 / -1; }
-        .hidden { display: none !important; }
+/* ============================== LAYOUT APP ============================== */
+.app-header{
+  background:linear-gradient(135deg,var(--navy-1),var(--navy-2));
+  color:#fff;padding:14px 18px;
+  position:sticky;top:0;z-index:30;box-shadow:0 4px 20px rgba(15,23,42,.18);
+}
+.app-header-row{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:1100px;margin:0 auto;}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:-.02em;}
+.brand .logo{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.header-tools{display:flex;align-items:center;gap:10px;}
 
-        /* ===== EXPORTAÇÃO PDF ===== */
-        .export-section {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            align-items: center;
-            margin-top: 12px;
-            background: #f8fafc;
-            padding: 16px;
-            border-radius: 16px;
-            border: 1px dashed #d0d8e3;
-        }
-        .export-section label {
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: #1e3a5f;
-        }
-        .export-section input[type="date"] {
-            padding: 8px 12px;
-            border: 1px solid #d0d8e3;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            background: white;
-            color: #0a1e2f;
-        }
-        .export-section .btn {
-            flex: 0 1 auto;
-            padding: 10px 24px;
-            background: #1e3a5f;
-            color: white;
-        }
-        .export-section .btn:hover { background: #2b5a8a; }
+/* indicador de sincronização — com TEXTO, não só cor */
+.sync-pill{
+  display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;
+  background:rgba(255,255,255,.14);padding:6px 11px;border-radius:999px;color:#fff;
+}
+.sync-dot{width:9px;height:9px;border-radius:50%;background:#cbd5e1;flex:none;}
+.sync-pill.ok   .sync-dot{background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,.25);}
+.sync-pill.off  .sync-dot{background:#fbbf24;}
+.sync-pill.err  .sync-dot{background:#f87171;}
+.icon-btn{
+  background:rgba(255,255,255,.14);border:none;color:#fff;width:36px;height:36px;
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;
+}
+.icon-btn:hover{background:rgba(255,255,255,.24);}
+.user-chip{font-size:12px;color:rgba(255,255,255,.85);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
-        /* ===== TOAST ===== */
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #0a1e2f;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 40px;
-            font-size: 0.9rem;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-            z-index: 2000;
-        }
-        .toast.show { opacity: 1; }
+.container{max-width:1100px;margin:0 auto;padding:18px;}
+.grid-2{display:grid;grid-template-columns:1fr;gap:18px;}
+@media(min-width:880px){ .grid-2{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);} }
 
-        /* ===== RESPONSIVO ===== */
-        @media (max-width: 500px) {
-            .extracted-fields { grid-template-columns: 1fr; }
-            .modal-body { grid-template-columns: 1fr; }
-            .modal { padding: 20px; }
-            .header h1 { font-size: 1.4rem; }
-            .export-section { flex-direction: column; align-items: stretch; }
-            .export-section input[type="date"] { width: 100%; }
-        }
-    </style>
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:18px;}
+.card h2{margin:0 0 14px;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.card h2 .muted{font-weight:500;color:var(--text-mute);font-size:13px;}
+
+/* ============================== DASHBOARD FINANCEIRO ============================== */
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+@media(max-width:520px){ .kpis{grid-template-columns:1fr;} }
+.kpi{border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;background:var(--surface-2);}
+.kpi .label{font-size:12px;color:var(--text-soft);font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+.kpi .value{font-size:22px;font-weight:800;margin-top:4px;letter-spacing:-.02em;}
+.kpi.received .value{color:var(--success);}
+.kpi.pending  .value{color:var(--warning);}
+.kpi.count    .value{color:var(--navy-2);}
+
+/* ============================== CONTROLES / FILTROS ============================== */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.view-switch{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:3px;}
+.view-switch button{border:none;background:none;padding:7px 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--text-soft);}
+.view-switch button.active{background:linear-gradient(135deg,var(--navy-1),var(--navy-2));color:#fff;}
+.input, select{
+  padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  font-size:14px;background:#fff;color:var(--text);
+}
+.input:focus,select:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft);}
+.search-wrap{position:relative;flex:1;min-width:170px;}
+.search-wrap .input{width:100%;padding-left:34px;}
+.search-wrap::before{content:"🔍";position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:13px;opacity:.6;}
+
+/* ============================== CALENDÁRIO ============================== */
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.cal-title{font-size:16px;font-weight:700;text-transform:capitalize;}
+.cal-nav{display:flex;align-items:center;gap:8px;}
+.cal-nav button{width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:#fff;font-size:15px;}
+.cal-nav button:hover{background:var(--surface-2);}
+.month-badge{font-size:12px;font-weight:600;color:#fff;background:var(--accent);padding:4px 9px;border-radius:999px;}
+.weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;}
+.weekdays span{text-align:center;font-size:11px;font-weight:700;color:var(--text-mute);text-transform:uppercase;padding:4px 0;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.day{
+  position:relative;border:1px solid transparent;border-radius:10px;background:var(--surface-2);
+  min-height:46px;padding:6px;font-size:13px;font-weight:600;color:var(--text);
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;
+  transition:background .12s,border-color .12s;
+}
+.day:hover{background:var(--accent-soft);}
+.day.adjacent{color:var(--text-mute);background:transparent;}     /* dias de outros meses em cinza */
+.day.today{border-color:var(--accent);}
+.day.today .num{background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;}
+.day.selected{background:linear-gradient(135deg,var(--navy-1),var(--navy-2));color:#fff;border-color:var(--navy-1);}
+.day.selected .num{color:#fff;}
+.dots{display:flex;gap:3px;height:7px;}
+.dot{width:6px;height:6px;border-radius:50%;}
+.dot.event{background:var(--accent);}                              /* ponto azul = tem evento */
+.dot.done{background:var(--success);}                              /* ponto verde = todos concluídos */
+.day.selected .dot.event{background:#bfdbfe;}
+.day.selected .dot.done{background:#86efac;}
+
+/* ============================== LISTA DE EVENTOS ============================== */
+.event-list{display:flex;flex-direction:column;gap:10px;}
+.event-item{
+  border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;background:#fff;
+  display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:box-shadow .15s,border-color .15s;
+}
+.event-item:hover{border-color:var(--accent);box-shadow:var(--shadow);}
+.event-item.done{background:var(--surface-2);}
+.event-item.done .ev-title{text-decoration:line-through;color:var(--text-mute);}
+.ev-time{font-size:13px;font-weight:800;color:var(--navy-2);min-width:46px;text-align:center;padding-top:2px;}
+.ev-main{flex:1;min-width:0;}
+.ev-title{font-weight:700;font-size:15px;}
+.ev-meta{font-size:13px;color:var(--text-soft);margin-top:2px;display:flex;flex-wrap:wrap;gap:4px 12px;}
+.ev-actions{display:flex;gap:6px;}
+.ev-actions button{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:14px;}
+.ev-actions .del:hover{background:var(--danger-soft);border-color:var(--danger);}
+.ev-actions .edit:hover{background:var(--accent-soft);border-color:var(--accent);}
+
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;}
+.badge .b-dot{width:7px;height:7px;border-radius:50%;}
+.badge.pendente   {background:var(--warning-soft);color:#92400e;}
+.badge.pendente .b-dot{background:var(--warning);}
+.badge.confirmado {background:var(--accent-soft);color:#1e40af;}
+.badge.confirmado .b-dot{background:var(--accent);}
+.badge.concluído  {background:var(--success-soft);color:#166534;}
+.badge.concluído .b-dot{background:var(--success);}
+.badge.cancelado  {background:var(--danger-soft);color:#991b1b;}
+.badge.cancelado .b-dot{background:var(--danger);}
+
+.empty{text-align:center;color:var(--text-mute);padding:28px 16px;font-size:14px;}
+.empty .big{font-size:30px;display:block;margin-bottom:8px;}
+
+/* ============================== PARSER ============================== */
+.parser textarea{
+  width:100%;min-height:120px;resize:vertical;padding:12px 14px;border:1px solid var(--border);
+  border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface-2);
+}
+.parser textarea:focus{background:#fff;border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft);}
+.parser-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.btn-soft{background:var(--surface-2);border:1px solid var(--border);color:var(--text);}
+.btn-soft:hover{background:var(--accent-soft);border-color:var(--accent);}
+
+/* ============================== MODAIS ============================== */
+.overlay{
+  position:fixed;inset:0;background:rgba(15,23,42,.55);
+  display:flex;align-items:center;justify-content:center;padding:16px;z-index:60;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+}
+.modal{
+  background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-lg);
+  width:100%;max-width:560px;max-height:90vh;overflow:auto;
+}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1;}
+.modal-head h3{margin:0;font-size:17px;font-weight:700;}
+.modal-close{width:34px;height:34px;border-radius:10px;border:none;background:var(--surface-2);font-size:16px;}
+.modal-close:hover{background:var(--danger-soft);color:var(--danger);}
+.modal-body{padding:20px;}
+.modal-foot{display:flex;gap:10px;padding:16px 20px;border-top:1px solid var(--border);flex-wrap:wrap;justify-content:flex-end;position:sticky;bottom:0;background:var(--surface);}
+
+/* formulário do preview/edição */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:520px){ .form-grid{grid-template-columns:1fr;} }
+.form-grid .full{grid-column:1 / -1;}
+.form-grid label{font-size:12px;font-weight:600;color:var(--text-soft);display:block;margin-bottom:5px;}
+.form-grid input,.form-grid select,.form-grid textarea{
+  width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  font-size:14px;font-family:inherit;background:var(--surface-2);
+}
+.form-grid input:focus,.form-grid select:focus,.form-grid textarea:focus{background:#fff;border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft);}
+.dup-warn{background:var(--warning-soft);color:#92400e;font-size:13px;font-weight:500;padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:14px;display:flex;gap:8px;}
+
+/* detalhes */
+.detail-row{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:14px;}
+.detail-row:last-child{border-bottom:none;}
+.detail-row .ic{width:22px;text-align:center;flex:none;}
+.detail-row .k{color:var(--text-soft);min-width:96px;font-weight:600;}
+.detail-row .v{flex:1;font-weight:500;}
+
+/* ============================== TOASTS ============================== */
+#toasts{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:8px;align-items:center;width:min(420px,calc(100% - 24px));}
+.toast{
+  background:#0f172a;color:#fff;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:500;
+  box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:12px;width:100%;
+  animation:toastIn .25s ease;
+}
+.toast.success{background:#14532d;}
+.toast.error{background:#7f1d1d;}
+.toast .t-icon{font-size:16px;}
+.toast .t-msg{flex:1;}
+.toast .t-action{background:rgba(255,255,255,.18);border:none;color:#fff;font-weight:700;font-size:13px;padding:6px 12px;border-radius:8px;}
+.toast .t-action:hover{background:rgba(255,255,255,.3);}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+
+/* ============================== SKELETON / SPINNER ============================== */
+.skeleton{background:linear-gradient(90deg,#eef2f7 25%,#e2e8f0 50%,#eef2f7 75%);background-size:200% 100%;animation:sk 1.2s infinite;border-radius:8px;}
+@keyframes sk{from{background-position:200% 0;}to{background-position:-200% 0;}}
+.sk-row{height:60px;margin-bottom:10px;}
+.spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+.spinner.dark{border-color:rgba(15,23,42,.2);border-top-color:var(--navy-2);}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* área de relatório (renderizada fora da tela para virar PDF) */
+#reportSheet{position:fixed;left:-99999px;top:0;width:760px;background:#fff;color:#0f172a;font-family:var(--font);}
+.rep-header{background:linear-gradient(135deg,var(--navy-1),var(--navy-2));color:#fff;padding:22px 26px;}
+.rep-header h1{margin:0;font-size:22px;}
+.rep-header .meta{font-size:12px;opacity:.85;margin-top:4px;}
+.rep-body{padding:22px 26px;}
+.rep-table{width:100%;border-collapse:collapse;font-size:12px;}
+.rep-table th{background:#eef2f7;text-align:left;padding:8px 10px;border-bottom:2px solid var(--navy-2);font-weight:700;}
+.rep-table td{padding:7px 10px;border-bottom:1px solid var(--border);}
+.rep-totals{margin-top:16px;display:flex;gap:24px;font-size:13px;font-weight:700;}
+.rep-totals .r{color:var(--success);}
+.rep-totals .p{color:var(--warning);}
+</style>
 </head>
+
 <body>
 
-<div class="container">
-    <!-- HEADER -->
-    <div class="header">
-        <h1>Agenda <span style="font-weight:300;color:#6b7f93; -webkit-text-fill-color:#6b7f93;">Profissional</span></h1>
-        <div class="sync-status">
-            <span class="dot online" id="syncDot"></span>
-            <span id="syncLabel">Sincronizado</span>
-            <button class="btn-sync" id="forceSyncBtn">🔄</button>
-        </div>
+<!-- =================================================================== -->
+<!--  TELA DE AUTENTICAÇÃO (login / cadastro)                            -->
+<!-- =================================================================== -->
+<div id="authScreen">
+  <div class="auth-card">
+    <h1>Agenda Profissional</h1>
+    <p class="sub" id="authSub">Entre para acessar seus agendamentos sincronizados.</p>
+
+    <div id="authError" class="auth-error hidden"></div>
+
+    <div class="field">
+      <label for="authEmail">E-mail</label>
+      <input id="authEmail" type="email" autocomplete="email" placeholder="voce@exemplo.com" />
+    </div>
+    <div class="field">
+      <label for="authPass">Senha</label>
+      <input id="authPass" type="password" autocomplete="current-password" placeholder="••••••••" />
     </div>
 
-    <!-- CALENDÁRIO -->
+    <button id="authSubmit" class="btn btn-primary">Entrar</button>
+
+    <div class="divider">ou</div>
+    <button id="googleBtn" class="btn btn-google">
+      <span aria-hidden="true">🇬</span> Continuar com Google
+    </button>
+
+    <div class="auth-toggle">
+      <span id="toggleText">Ainda não tem conta?</span>
+      <button id="toggleMode" type="button">Cadastre-se</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================================================================== -->
+<!--  APLICAÇÃO PRINCIPAL                                                 -->
+<!-- =================================================================== -->
+<div id="app" class="hidden">
+
+  <header class="app-header">
+    <div class="app-header-row">
+      <div class="brand"><span class="logo" aria-hidden="true">📅</span> Agenda</div>
+      <div class="header-tools">
+        <span id="syncPill" class="sync-pill off" role="status" aria-live="polite">
+          <span class="sync-dot" aria-hidden="true"></span><span id="syncText">Conectando…</span>
+        </span>
+        <button id="reloadBtn" class="icon-btn" title="Forçar recarregar" aria-label="Forçar recarregar">⟳</button>
+        <span class="user-chip" id="userChip"></span>
+        <button id="logoutBtn" class="icon-btn" title="Sair" aria-label="Sair">⎋</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- DASHBOARD FINANCEIRO -->
     <div class="card">
-        <div class="card-title">
-            📆 Calendário
-            <span class="badge" id="eventCount">0 eventos</span>
-        </div>
-        <div class="calendar-nav">
-            <button id="prevMonth">◀</button>
-            <span class="month-year" id="monthYear">Maio 2026</span>
-            <button id="nextMonth">▶</button>
-        </div>
-        <div class="calendar-grid" id="calendarGrid"></div>
-        <div class="day-events" id="dayEvents">
-            <div class="empty">Selecione um dia</div>
-        </div>
+      <h2>💰 Resumo financeiro <span class="muted" id="kpiPeriodLabel"></span></h2>
+      <div class="kpis">
+        <div class="kpi received"><div class="label">Total recebido</div><div class="value" id="kpiReceived">R$ 0,00</div></div>
+        <div class="kpi pending"><div class="label">A receber</div><div class="value" id="kpiPending">R$ 0,00</div></div>
+        <div class="kpi count"><div class="label">Eventos no período</div><div class="value" id="kpiCount">0</div></div>
+      </div>
     </div>
 
-    <!-- EXPORTAR PDF -->
+    <!-- FILTROS GLOBAIS -->
     <div class="card">
-        <div class="card-title">📄 Exportar relatório PDF</div>
-        <div class="export-section">
-            <label for="startDate">Data inicial:</label>
-            <input type="date" id="startDate">
-            <label for="endDate">Data final:</label>
-            <input type="date" id="endDate">
-            <button class="btn" id="exportPdfBtn">⬇️ Gerar PDF</button>
+      <div class="toolbar">
+        <div class="view-switch" role="tablist" aria-label="Visões">
+          <button data-view="month" class="active" role="tab">Mês</button>
+          <button data-view="upcoming" role="tab">Próximos 30 dias</button>
+          <button data-view="week" role="tab">Semana</button>
         </div>
+        <div class="search-wrap">
+          <input id="searchInput" class="input" type="search" placeholder="Buscar por nome, tema, responsável…" aria-label="Buscar" />
+        </div>
+        <select id="filterStatus" class="input" aria-label="Filtrar por status">
+          <option value="">Todos os status</option>
+          <option value="pendente">Pendente</option>
+          <option value="confirmado">Confirmado</option>
+          <option value="concluído">Concluído</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <select id="filterResp" class="input" aria-label="Filtrar por responsável">
+          <option value="">Todos responsáveis</option>
+        </select>
+      </div>
     </div>
 
-    <!-- NOVO AGENDAMENTO -->
-    <div class="card">
-        <div class="card-title">✏️ Novo agendamento</div>
-        <textarea id="rawInput" placeholder="Cole a mensagem bagunçada...&#10;Ex: Data: 19/07&#10;Responsável: João&#10;Tema: Aniversário..."></textarea>
-        <button class="btn btn-primary" id="parseBtn">🔍 Interpretar</button>
-        <div id="previewCard" class="hidden" style="margin-top:16px;">
-            <div id="fieldsContainer" class="extracted-fields"></div>
-            <div class="btn-group">
-                <button class="btn btn-success" id="saveBtn">💾 Salvar</button>
-                <button class="btn btn-secondary" id="cancelPreviewBtn">Cancelar</button>
+    <div class="grid-2">
+      <!-- COLUNA ESQUERDA: CALENDÁRIO + LISTA DO DIA -->
+      <div>
+        <!-- CALENDÁRIO -->
+        <div class="card" id="calendarCard">
+          <div class="cal-head">
+            <div class="cal-title" id="calTitle">—</div>
+            <div class="cal-nav">
+              <span class="month-badge" id="monthBadge">0 eventos</span>
+              <button id="prevMonth" aria-label="Mês anterior">◀</button>
+              <button id="todayBtn" aria-label="Ir para hoje" title="Hoje">•</button>
+              <button id="nextMonth" aria-label="Próximo mês">▶</button>
             </div>
+          </div>
+          <div class="weekdays" aria-hidden="true">
+            <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
         </div>
+
+        <!-- LISTA: dia selecionado / próximos / semana -->
+        <div class="card">
+          <h2 id="listTitle">Eventos do dia</h2>
+          <div id="listArea"><div class="sk-row skeleton"></div><div class="sk-row skeleton"></div></div>
+        </div>
+      </div>
+
+      <!-- COLUNA DIREITA: PARSER + EXPORTAÇÃO -->
+      <div>
+        <!-- PARSER -->
+        <div class="card parser">
+          <h2>🧠 Interpretar mensagem</h2>
+          <p style="margin:-6px 0 12px;font-size:13px;color:var(--text-soft);">
+            Cole um texto bagunçado (ex.: WhatsApp). O sistema extrai os campos e abre um preview para você revisar antes de salvar.
+          </p>
+          <textarea id="parserInput" placeholder="Ex.:
+Aniversariante: Maria Clara
+Responsável: João
+Cel: (82) 99999-8888
+Data: 19/07/2026  às 15h
+Local: Salão Azul
+Pacote: Festa completa
+Valor: R$ 1.500,00  Restante: 500,00
+Tema: Jardim Encantado"></textarea>
+          <div class="parser-actions">
+            <button id="parseBtn" class="btn btn-primary" style="width:auto;">🔍 Interpretar</button>
+            <button id="newBlankBtn" class="btn btn-soft">+ Novo em branco</button>
+            <button id="clearParserBtn" class="btn btn-soft">Limpar</button>
+          </div>
+        </div>
+
+        <!-- EXPORTAÇÃO -->
+        <div class="card">
+          <h2>📤 Exportar relatório</h2>
+          <div class="form-grid">
+            <div><label for="repStart">Data inicial</label><input id="repStart" type="date" /></div>
+            <div><label for="repEnd">Data final</label><input id="repEnd" type="date" /></div>
+          </div>
+          <div class="parser-actions">
+            <button id="exportPdf" class="btn btn-primary" style="width:auto;">📄 PDF</button>
+            <button id="exportXlsx" class="btn btn-soft">📊 Excel</button>
+            <button id="exportCsv" class="btn btn-soft">📑 CSV</button>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 </div>
 
-<!-- MODAL -->
-<div class="modal-overlay" id="detailModal">
-    <div class="modal">
-        <div class="modal-header">
-            <h2 id="modalTitle">📋 Detalhes</h2>
-            <button class="modal-close" id="modalClose">✕</button>
-        </div>
-        <div class="modal-body" id="modalBody"></div>
-        <div class="modal-actions" id="modalActions">
-            <button class="btn btn-success" id="toggleDoneBtn">✅ Marcar como concluído</button>
-            <button class="btn btn-secondary" id="editFromModalBtn">✏️ Editar</button>
-            <button class="btn btn-danger" id="deleteFromModalBtn">🗑️ Excluir</button>
-        </div>
-    </div>
-</div>
+<!-- container de toasts e área oculta de relatório -->
+<div id="toasts" aria-live="assertive"></div>
+<div id="reportSheet"></div>
 
-<!-- TOAST -->
-<div id="toast" class="toast"></div>
-
-<!-- ELEMENTO PARA PDF (precisa estar dentro da área visível do viewport
-     para o html2canvas conseguir capturar o conteúdo corretamente; por
-     isso usamos z-index negativo + opacidade 0 em vez de left:-9999px,
-     que fazia o PDF sair em branco) -->
-<div id="pdfContent" style="position:fixed; left:0; top:0; width:800px; background:white; padding:40px; font-family: 'Inter', sans-serif; color:#0a1e2f; opacity:0; z-index:-1; pointer-events:none;"></div>
-
+<!-- =================================================================== -->
+<!--  LÓGICA DA APLICAÇÃO (ES MODULE)                                     -->
+<!-- =================================================================== -->
 <script type="module">
-    // ============================================================
-    // IMPORTS FIREBASE + AUTH
-    // ============================================================
-    import { initializeApp } from 'firebase/app';
-    import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
-    import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { initializeApp } from "firebase/app";
+import {
+  getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+  createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup
+} from "firebase/auth";
+import {
+  getFirestore, collection, query, where, orderBy, onSnapshot,
+  addDoc, updateDoc, deleteDoc, doc as fbDoc, serverTimestamp, Timestamp,
+  enableIndexedDbPersistence
+} from "firebase/firestore";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyDMwdtyx3zWHwCHtalq572E_FyrF4f-drM",
-        authDomain: "corretorpro-84422.firebaseapp.com",
-        projectId: "corretorpro-84422",
-        storageBucket: "corretorpro-84422.firebasestorage.app",
-        messagingSenderId: "577827555644",
-        appId: "1:577827555644:web:6394517f3ba8a8230ab639",
-        measurementId: "G-YWXW1KFCW1"
-    };
+/* =====================================================================
+   1) CONFIG DO FIREBASE  ←←←  SUBSTITUA PELO SEU PROJETO
+   ---------------------------------------------------------------------
+   Pegue estes valores em: console.firebase.google.com →
+   Configurações do projeto → Seus apps → SDK do Firebase (Web).
+   Habilite Authentication (E-mail/senha e Google) e crie o Firestore.
+   ===================================================================== */
+const firebaseConfig = {
+  apiKey:            "COLOQUE_SUA_API_KEY",
+  authDomain:        "SEU_PROJETO.firebaseapp.com",
+  projectId:         "SEU_PROJETO",
+  storageBucket:     "SEU_PROJETO.appspot.com",
+  messagingSenderId: "000000000000",
+  appId:             "1:000000000000:web:xxxxxxxxxxxx"
+};
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-    // BUG CORRIGIDO: a coleção do Firestore nunca era criada, então
-    // addDoc/onSnapshot falhavam silenciosamente (eventsCollection undefined).
-    const eventsCollection = collection(db, 'agendamentos');
+/* =====================================================================
+   2) EXEMPLO DE FIRESTORE SECURITY RULES  (cole no console → Firestore → Regras)
+   ---------------------------------------------------------------------
+   A validação do front-end NUNCA basta. Estas regras garantem, NO SERVIDOR:
+   (a) só o dono lê/escreve seus documentos;
+   (b) tipos e campos obrigatórios são validados na criação/edição.
 
-    // Autenticação anônima automática
-    signInAnonymously(auth)
-        .then(() => console.log('✅ Autenticado anonimamente'))
-        .catch((err) => console.warn('⚠️ Falha na autenticação anônima:', err));
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
 
-    // BUG CORRIGIDO: o listener do Firestore era iniciado imediatamente,
-    // antes da autenticação anônima terminar. Se as regras do Firestore
-    // exigirem usuário autenticado, isso causava erro de permissão na
-    // primeira carga. Agora só iniciamos o listener depois do login.
-    let firebaseListenerStarted = false;
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            console.log('Usuário autenticado UID:', user.uid);
-            setSyncStatus('online');
-            if (!firebaseListenerStarted) {
-                firebaseListenerStarted = true;
-                initFirebaseListener();
-            }
-        } else {
-            console.log('Usuário não autenticado');
-            setSyncStatus('offline');
+       match /agendamentos/{id} {
+         // só lê o que é seu
+         allow read: if request.auth != null
+                     && resource.data.ownerUid == request.auth.uid;
+
+         // criar: precisa ser o dono e respeitar o schema
+         allow create: if request.auth != null
+                       && request.resource.data.ownerUid == request.auth.uid
+                       && request.resource.data.data is string         // 'YYYY-MM-DD'
+                       && request.resource.data.data.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+                       && request.resource.data.valor_pago is number
+                       && request.resource.data.valor_restante is number
+                       && request.resource.data.concluido is bool;
+
+         // editar/excluir: só o dono, sem trocar o dono
+         allow update: if request.auth != null
+                       && resource.data.ownerUid == request.auth.uid
+                       && request.resource.data.ownerUid == request.auth.uid;
+         allow delete: if request.auth != null
+                       && resource.data.ownerUid == request.auth.uid;
+       }
+     }
+   }
+   ===================================================================== */
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+/* Persistência offline (IndexedDB). enableIndexedDbPersistence está marcado como
+   legado nas versões mais novas — a alternativa moderna é initializeFirestore com
+   { localCache: persistentLocalCache(...) } — mas mantemos aqui conforme pedido. */
+enableIndexedDbPersistence(db).catch((err) => {
+  // failed-precondition = várias abas abertas; unimplemented = navegador sem suporte
+  console.warn("Persistência offline indisponível:", err.code);
+});
+
+const COL = collection(db, "agendamentos");
+
+/* =====================================================================
+   3) ESTADO GLOBAL — fluxo reativo unidirecional
+   ---------------------------------------------------------------------
+   A UI NUNCA muta o estado direto. Toda ação grava no Firestore; o
+   onSnapshot atualiza allEvents (espelho do banco) e dispara o render.
+   ===================================================================== */
+const state = {
+  user: null,
+  allEvents: [],          // espelho do Firestore
+  unsubscribe: null,      // para encerrar o listener
+  view: "month",          // 'month' | 'upcoming' | 'week'
+  calRef: new Date(),     // mês exibido no calendário
+  selectedKey: null,      // dia selecionado (YYYY-MM-DD)
+  search: "",
+  fStatus: "",
+  fResp: "",
+  firstSnapshot: true,
+  retryTimer: null
+};
+
+/* =====================================================================
+   4) UTILITÁRIOS DE DATA — isolados e testáveis
+   ===================================================================== */
+const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho",
+               "agosto","setembro","outubro","novembro","dezembro"];
+
+// Date → 'YYYY-MM-DD' usando horário LOCAL (evita o bug de fuso do toISOString)
+function formatDateKey(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+// 'YYYY-MM-DD' → '19/07/2026 (domingo)'
+function formatDisplayDate(key){
+  const d = normalizeDate(key);
+  if(!d) return key || "";
+  const semana = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"][d.getDay()];
+  return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()} (${semana})`;
+}
+// 'YYYY-MM-DD' → Date local (meio-dia evita saltos de fuso)
+function normalizeDate(key){
+  if(!key || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return null;
+  const [y,m,d] = key.split("-").map(Number);
+  return new Date(y, m-1, d, 12, 0, 0);
+}
+// texto livre → 'YYYY-MM-DD' | null. Reconhece vários formatos e datas relativas.
+function parseDateFromString(text, base = new Date()){
+  if(!text) return null;
+  const t = text.toLowerCase().trim();
+
+  // relativas
+  if(/\bhoje\b/.test(t))               return formatDateKey(base);
+  if(/depois de amanh[ãa]/.test(t))    { const d=new Date(base); d.setDate(d.getDate()+2); return formatDateKey(d); }
+  if(/amanh[ãa]/.test(t))              { const d=new Date(base); d.setDate(d.getDate()+1); return formatDateKey(d); }
+  const semanaNomes = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
+  const relWeek = t.match(/pr[óo]xim[ao]\s+(domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado)/);
+  if(relWeek){
+    const alvo = semanaNomes.findIndex(n => relWeek[1].replace("c","ç").replace("a","á").startsWith(n.slice(0,3)) || n.startsWith(relWeek[1].slice(0,3)));
+    if(alvo >= 0){
+      const d = new Date(base);
+      let diff = (alvo - d.getDay() + 7) % 7; if(diff === 0) diff = 7;
+      d.setDate(d.getDate()+diff); return formatDateKey(d);
+    }
+  }
+
+  // ISO
+  let m = t.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+
+  // "19 de julho de 2026" / "19 de março" (com acentos)
+  m = t.match(/(\d{1,2})\s*(?:de\s+)?(janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)(?:\s*(?:de\s+)?(\d{2,4}))?/);
+  if(m){
+    const dia = +m[1];
+    const mesNome = m[2].replace("c","ç");
+    const idx = MESES.findIndex(x => x === mesNome || x.slice(0,4) === mesNome.slice(0,4));
+    let ano = m[3] ? +m[3] : base.getFullYear();
+    if(ano < 100) ano += 2000;
+    if(idx >= 0) return formatDateKey(new Date(ano, idx, dia));
+  }
+
+  // 19/07/2026, 19/07/26 ou 19/07
+  m = t.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+  if(m){
+    const dia = +m[1], mes = +m[2];
+    let ano = m[3] ? +m[3] : base.getFullYear();
+    if(ano < 100) ano += 2000;
+    if(mes >= 1 && mes <= 12 && dia >= 1 && dia <= 31)
+      return formatDateKey(new Date(ano, mes-1, dia));
+  }
+  return null;
+}
+const formatMoney = (n) =>
+  (Number(n)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+
+// número a partir de "R$ 1.500,00" / "1500,50" / "1500"
+function parseMoney(s){
+  if(typeof s === "number") return s;
+  if(!s) return 0;
+  const clean = String(s).replace(/[^\d,.-]/g,"").replace(/\.(?=\d{3}(\D|$))/g,"").replace(",",".");
+  const n = parseFloat(clean);
+  return isNaN(n) ? 0 : n;
+}
+
+/* =====================================================================
+   5) PARSER INTELIGENTE — recurso central
+   ---------------------------------------------------------------------
+   Estratégia: por LINHA tenta "chave: valor" usando sinônimos (ordenados
+   da chave mais longa p/ mais curta, p/ "valor restante" não virar "valor").
+   Sem rótulo, detecta celular e dinheiro por padrão. O resto vai p/ observação.
+   ===================================================================== */
+const SINONIMOS = {
+  aniversariante: ["aniversariante","aniversariante(a)","niver","festejado","cliente"],
+  responsavel:    ["responsavel","responsável","resp","atendente","vendedor"],
+  celular:        ["celular","cel","telefone","tel","whatsapp","fone","contato"],
+  tema:           ["tema","decoração","decoracao","tematica","temática"],
+  local:          ["local","endereço","endereco","salão","salao","espaço","espaco"],
+  pacote:         ["pacote","plano","serviço","servico"],
+  hora_inicio:    ["hora","horário","horario","início","inicio","hr"],
+  valor_restante: ["valor restante","valor_restante","restante","falta","saldo","a pagar","pendente"],
+  valor_pago:     ["valor pago","valor_pago","valor","pagamento","pago","sinal","entrada","preço","preco"],
+  data:           ["data","dia"],
+  observacao:     ["observação","observacao","obs","notas","nota"]
+};
+// lista plana [campo, sinônimo] ordenada do sinônimo MAIS LONGO p/ o mais curto
+const SIN_FLAT = Object.entries(SINONIMOS)
+  .flatMap(([campo, lista]) => lista.map(s => [campo, s]))
+  .sort((a,b) => b[1].length - a[1].length);
+
+const REGEX_CEL   = /(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?(?:9\s?)?\d{4}[-.\s]?\d{4}/;
+const REGEX_MONEY = /r?\$?\s?\d{1,3}(?:\.\d{3})*,\d{2}|\b\d+,\d{2}\b/i;
+const REGEX_HORA  = /(\d{1,2})\s*(?:h|:)\s*(\d{2})?/;
+
+function parseMessage(text){
+  const out = {
+    aniversariante:"", responsavel:"", celular:"", tema:"", local:"",
+    pacote:"", hora_inicio:"", data:"", valor_pago:0, valor_restante:0, observacao:""
+  };
+  const extras = [];
+  const linhas = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+  for(const linha of linhas){
+    const sep = linha.indexOf(":");
+    let casou = false;
+
+    // (a) tem rótulo "chave: valor"?
+    if(sep > -1){
+      const chave = linha.slice(0, sep).trim().toLowerCase();
+      const valor = linha.slice(sep+1).trim();
+      for(const [campo, sin] of SIN_FLAT){       // já ordenado longo→curto
+        if(chave === sin || chave.startsWith(sin)){
+          aplicaCampo(out, campo, valor);
+          casou = true; break;
         }
+      }
+      if(casou) continue;
+    }
+
+    // (b) sem rótulo: detecta por padrão
+    const dataDetectada = parseDateFromString(linha);
+    if(dataDetectada && !out.data){ out.data = dataDetectada; casou = true; }
+
+    const cel = linha.match(REGEX_CEL);
+    if(cel && !out.celular && cel[0].replace(/\D/g,"").length >= 10){ out.celular = cel[0].trim(); casou = true; }
+
+    const money = linha.match(REGEX_MONEY);
+    if(money){
+      if(!out.valor_pago){ out.valor_pago = parseMoney(money[0]); casou = true; }
+      else if(!out.valor_restante){ out.valor_restante = parseMoney(money[0]); casou = true; }
+    }
+
+    if(!casou) extras.push(linha);
+  }
+
+  if(extras.length) out.observacao = (out.observacao ? out.observacao+"\n" : "") + extras.join("\n");
+  return out;
+}
+
+function aplicaCampo(out, campo, valor){
+  if(campo === "valor_pago" || campo === "valor_restante"){
+    out[campo] = parseMoney(valor);
+  } else if(campo === "data"){
+    out.data = parseDateFromString(valor) || out.data;
+  } else if(campo === "hora_inicio"){
+    const h = valor.match(REGEX_HORA);
+    out.hora_inicio = h ? `${String(h[1]).padStart(2,"0")}:${h[2]||"00"}` : valor;
+  } else if(campo === "observacao"){
+    out.observacao = (out.observacao ? out.observacao+"\n" : "") + valor;
+  } else {
+    out[campo] = valor;
+    // dentro da linha de aniversariante/responsável pode vir telefone/hora junto
+    if(campo === "responsavel" || campo === "aniversariante"){
+      const cel = valor.match(REGEX_CEL);
+      if(cel && !out.celular && cel[0].replace(/\D/g,"").length >= 10) out.celular = cel[0].trim();
+    }
+  }
+}
+
+/* =====================================================================
+   6) AUTENTICAÇÃO
+   ===================================================================== */
+const $ = (id) => document.getElementById(id);
+let authMode = "login";   // 'login' | 'signup'
+
+function setAuthError(msg){
+  const el = $("authError");
+  if(!msg){ el.classList.add("hidden"); return; }
+  el.textContent = msg; el.classList.remove("hidden");
+}
+function authErrorMsg(code){
+  const map = {
+    "auth/invalid-email":"E-mail inválido.",
+    "auth/missing-password":"Informe a senha.",
+    "auth/weak-password":"A senha precisa de pelo menos 6 caracteres.",
+    "auth/email-already-in-use":"Este e-mail já está cadastrado.",
+    "auth/invalid-credential":"E-mail ou senha incorretos.",
+    "auth/user-not-found":"Usuário não encontrado.",
+    "auth/wrong-password":"Senha incorreta.",
+    "auth/popup-closed-by-user":"Login cancelado.",
+    "auth/network-request-failed":"Falha de rede. Verifique sua conexão."
+  };
+  return map[code] || "Não foi possível concluir. Tente novamente.";
+}
+
+$("toggleMode").addEventListener("click", () => {
+  authMode = authMode === "login" ? "signup" : "login";
+  const isLogin = authMode === "login";
+  $("authSub").textContent = isLogin ? "Entre para acessar seus agendamentos sincronizados." : "Crie sua conta para começar.";
+  $("authSubmit").textContent = isLogin ? "Entrar" : "Criar conta";
+  $("toggleText").textContent = isLogin ? "Ainda não tem conta?" : "Já tem conta?";
+  $("toggleMode").textContent = isLogin ? "Cadastre-se" : "Entrar";
+  $("authPass").setAttribute("autocomplete", isLogin ? "current-password" : "new-password");
+  setAuthError("");
+});
+
+$("authSubmit").addEventListener("click", doEmailAuth);
+$("authPass").addEventListener("keydown", (e) => { if(e.key === "Enter") doEmailAuth(); });
+
+async function doEmailAuth(){
+  setAuthError("");
+  const email = $("authEmail").value.trim();
+  const pass  = $("authPass").value;
+  const btn = $("authSubmit");
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try{
+    if(authMode === "login") await signInWithEmailAndPassword(auth, email, pass);
+    else await createUserWithEmailAndPassword(auth, email, pass);
+  }catch(err){
+    setAuthError(authErrorMsg(err.code));
+  }finally{
+    btn.disabled = false; btn.textContent = authMode === "login" ? "Entrar" : "Criar conta";
+  }
+}
+
+$("googleBtn").addEventListener("click", async () => {
+  setAuthError("");
+  try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch(err){ setAuthError(authErrorMsg(err.code)); }
+});
+
+$("logoutBtn").addEventListener("click", async () => {
+  if(state.unsubscribe){ state.unsubscribe(); state.unsubscribe = null; }
+  await signOut(auth);
+});
+
+/* O listener do Firestore só inicia DEPOIS que o login é confirmado. */
+onAuthStateChanged(auth, (user) => {
+  state.user = user;
+  if(user){
+    $("authScreen").classList.add("hidden");
+    $("app").classList.remove("hidden");
+    $("userChip").textContent = user.email || user.displayName || "Conectado";
+    startListener(user.uid);
+    initReportDates();
+  }else{
+    $("app").classList.add("hidden");
+    $("authScreen").classList.remove("hidden");
+    state.allEvents = [];
+  }
+});
+
+/* =====================================================================
+   7) SINCRONIZAÇÃO EM TEMPO REAL — onSnapshot filtrado por ownerUid
+   ===================================================================== */
+function setSync(stateName){
+  const pill = $("syncPill"), txt = $("syncText");
+  pill.classList.remove("ok","off","err");
+  if(stateName === "ok"){  pill.classList.add("ok");  txt.textContent = "Sincronizado"; }
+  if(stateName === "off"){ pill.classList.add("off"); txt.textContent = "Offline"; }
+  if(stateName === "err"){ pill.classList.add("err"); txt.textContent = "Erro de conexão"; }
+}
+
+function startListener(uid){
+  if(state.unsubscribe) state.unsubscribe();
+  // ISOLAMENTO POR USUÁRIO: toda query filtra por ownerUid
+  const q = query(COL, where("ownerUid","==",uid), orderBy("data"));
+
+  state.firstSnapshot = true;
+  $("listArea").innerHTML = '<div class="sk-row skeleton"></div><div class="sk-row skeleton"></div>';
+
+  state.unsubscribe = onSnapshot(q,
+    { includeMetadataChanges:true },
+    (snap) => {
+      // Não fazemos shadowing de doc(): a variável do snapshot chama-se 'd'.
+      state.allEvents = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      setSync(snap.metadata.fromCache ? "off" : "ok");
+      if(state.retryTimer){ clearInterval(state.retryTimer); state.retryTimer = null; }
+      state.firstSnapshot = false;
+      renderAll();
+    },
+    (err) => {
+      console.error("onSnapshot:", err);
+      setSync("err");
+      // reconexão automática a cada 10s
+      if(!state.retryTimer){
+        state.retryTimer = setInterval(() => startListener(uid), 10000);
+      }
+    }
+  );
+}
+
+$("reloadBtn").addEventListener("click", () => {
+  if(state.user){ setSync("off"); startListener(state.user.uid); toast("Recarregando…"); }
+});
+
+/* =====================================================================
+   8) RENDER PRINCIPAL
+   ===================================================================== */
+function renderAll(){
+  refreshRespFilter();
+  renderDashboard();
+  renderCalendar();
+  renderList();
+}
+
+// aplica busca + filtros de status/responsável
+function applyFilters(events){
+  const s = state.search.toLowerCase();
+  return events.filter(e => {
+    if(state.fStatus){
+      const st = e.status || (e.concluido ? "concluído" : "pendente");
+      if(st !== state.fStatus) return false;
+    }
+    if(state.fResp && (e.responsavel||"") !== state.fResp) return false;
+    if(s){
+      const blob = `${e.aniversariante||""} ${e.tema||""} ${e.responsavel||""} ${e.local||""}`.toLowerCase();
+      if(!blob.includes(s)) return false;
+    }
+    return true;
+  });
+}
+
+function refreshRespFilter(){
+  const sel = $("filterResp");
+  const atual = sel.value;
+  const nomes = [...new Set(state.allEvents.map(e => e.responsavel).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Todos responsáveis</option>' +
+    nomes.map(n => `<option${n===atual?" selected":""}>${escapeHtml(n)}</option>`).join("");
+}
+
+/* ---------- DASHBOARD FINANCEIRO (usa valores numéricos) ---------- */
+function renderDashboard(){
+  // período = mês atualmente exibido no calendário
+  const ref = state.calRef;
+  const ini = formatDateKey(new Date(ref.getFullYear(), ref.getMonth(), 1));
+  const fim = formatDateKey(new Date(ref.getFullYear(), ref.getMonth()+1, 0));
+  const noPeriodo = applyFilters(state.allEvents).filter(e => e.data >= ini && e.data <= fim);
+
+  const recebido = noPeriodo.reduce((s,e) => s + (Number(e.valor_pago)||0), 0);
+  const aReceber = noPeriodo.reduce((s,e) => s + (Number(e.valor_restante)||0), 0);
+
+  $("kpiReceived").textContent = formatMoney(recebido);
+  $("kpiPending").textContent  = formatMoney(aReceber);
+  $("kpiCount").textContent    = noPeriodo.length;
+  $("kpiPeriodLabel").textContent =
+    "· " + ref.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+}
+
+/* ---------- CALENDÁRIO MENSAL ---------- */
+function renderCalendar(){
+  const ref = state.calRef;
+  $("calTitle").textContent = ref.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+
+  const filtered = applyFilters(state.allEvents);
+  // mapa dia → eventos
+  const byDay = {};
+  for(const e of filtered){ (byDay[e.data] = byDay[e.data] || []).push(e); }
+
+  const year = ref.getFullYear(), month = ref.getMonth();
+  const first = new Date(year, month, 1);
+  const startGap = first.getDay();                       // domingo=0
+  const start = new Date(year, month, 1 - startGap);     // primeiro dia da grade
+  const todayKey = formatDateKey(new Date());
+
+  let monthCount = 0;
+  let html = "";
+  for(let i=0;i<42;i++){
+    const d = new Date(start); d.setDate(start.getDate()+i);
+    const key = formatDateKey(d);
+    const adjacent = d.getMonth() !== month;
+    const evs = byDay[key] || [];
+    if(!adjacent) monthCount += evs.length;
+
+    const isToday = key === todayKey;
+    const isSel   = key === state.selectedKey;
+    const allDone = evs.length > 0 && evs.every(e => e.concluido);
+
+    let dots = "";
+    if(evs.length){
+      dots = `<span class="dot event"></span>` + (allDone ? `<span class="dot done"></span>` : "");
+    }
+    html += `<button class="day${adjacent?" adjacent":""}${isToday?" today":""}${isSel?" selected":""}"
+              data-key="${key}" aria-label="${formatDisplayDate(key)}${evs.length?`, ${evs.length} evento(s)`:""}">
+              <span class="num">${d.getDate()}</span>
+              <span class="dots">${dots}</span>
+            </button>`;
+  }
+  $("calGrid").innerHTML = html;
+  $("monthBadge").textContent = `${monthCount} evento${monthCount!==1?"s":""}`;
+}
+
+/* ---------- LISTA (dia / próximos 30 / semana) ---------- */
+function renderList(){
+  const area = $("listArea");
+  const title = $("listTitle");
+  let events = applyFilters(state.allEvents);
+
+  if(state.view === "month"){
+    const key = state.selectedKey;
+    title.textContent = key ? `Eventos de ${formatDisplayDate(key)}` : "Eventos do dia";
+    if(!key){ area.innerHTML = emptyState("Selecione um dia no calendário."); return; }
+    events = events.filter(e => e.data === key);
+  }
+  else if(state.view === "upcoming"){
+    title.textContent = "Próximos 30 dias";
+    const hoje = formatDateKey(new Date());
+    const limite = new Date(); limite.setDate(limite.getDate()+30);
+    const limKey = formatDateKey(limite);
+    events = events.filter(e => e.data >= hoje && e.data <= limKey);
+  }
+  else { // week
+    const ref = new Date();
+    const start = new Date(ref); start.setDate(ref.getDate() - ref.getDay());
+    const end = new Date(start); end.setDate(start.getDate()+6);
+    title.textContent = `Semana · ${start.getDate()}/${start.getMonth()+1} a ${end.getDate()}/${end.getMonth()+1}`;
+    events = events.filter(e => e.data >= formatDateKey(start) && e.data <= formatDateKey(end));
+  }
+
+  events.sort((a,b) => (a.data+a.hora_inicio).localeCompare(b.data+b.hora_inicio));
+  if(!events.length){ area.innerHTML = emptyState("Nenhum evento aqui."); return; }
+
+  area.innerHTML = `<div class="event-list">${events.map(eventRow).join("")}</div>`;
+}
+
+function eventRow(e){
+  const status = e.status || (e.concluido ? "concluído" : "pendente");
+  const titulo = e.aniversariante || e.tema || "(sem nome)";
+  const subData = state.view === "month" ? "" : `📅 ${formatDisplayDate(e.data).split(" ")[0]}`;
+  return `<div class="event-item${e.concluido?" done":""}" data-id="${e.id}" data-act="open" tabindex="0" role="button">
+    <div class="ev-time">${e.hora_inicio || "—"}</div>
+    <div class="ev-main">
+      <div class="ev-title">${escapeHtml(titulo)}</div>
+      <div class="ev-meta">
+        ${e.responsavel?`<span>👤 ${escapeHtml(e.responsavel)}</span>`:""}
+        ${e.local?`<span>📍 ${escapeHtml(e.local)}</span>`:""}
+        ${subData?`<span>${subData}</span>`:""}
+        <span class="badge ${status}"><span class="b-dot"></span>${status}</span>
+      </div>
+    </div>
+    <div class="ev-actions">
+      <button class="edit" data-id="${e.id}" data-act="edit" title="Editar" aria-label="Editar">✏️</button>
+      <button class="del"  data-id="${e.id}" data-act="del"  title="Excluir" aria-label="Excluir">🗑️</button>
+    </div>
+  </div>`;
+}
+
+function emptyState(msg){
+  return `<div class="empty"><span class="big">🗓️</span>${escapeHtml(msg)}</div>`;
+}
+
+/* =====================================================================
+   9) DELEGAÇÃO DE EVENTOS — registrada UMA vez (não re-registra por render)
+   ===================================================================== */
+// calendário: selecionar dia
+$("calGrid").addEventListener("click", (ev) => {
+  const btn = ev.target.closest(".day");
+  if(!btn) return;
+  state.selectedKey = btn.dataset.key;
+  if(state.view !== "month"){ state.view = "month"; syncViewButtons(); }
+  renderCalendar(); renderList();
+});
+
+// lista: abrir / editar / excluir (um listener para tudo)
+$("listArea").addEventListener("click", (ev) => {
+  const el = ev.target.closest("[data-act]");
+  if(!el) return;
+  const id = el.dataset.id;
+  if(el.dataset.act === "edit"){ ev.stopPropagation(); openForm(findEvent(id)); }
+  else if(el.dataset.act === "del"){ ev.stopPropagation(); confirmDelete(id); }
+  else if(el.dataset.act === "open"){ openDetail(id); }
+});
+$("listArea").addEventListener("keydown", (ev) => {
+  if((ev.key === "Enter" || ev.key === " ") && ev.target.dataset?.act === "open"){
+    ev.preventDefault(); openDetail(ev.target.dataset.id);
+  }
+});
+
+// navegação do calendário
+$("prevMonth").addEventListener("click", () => { state.calRef = new Date(state.calRef.getFullYear(), state.calRef.getMonth()-1, 1); renderCalendar(); renderDashboard(); });
+$("nextMonth").addEventListener("click", () => { state.calRef = new Date(state.calRef.getFullYear(), state.calRef.getMonth()+1, 1); renderCalendar(); renderDashboard(); });
+$("todayBtn").addEventListener("click", () => { state.calRef = new Date(); state.selectedKey = formatDateKey(new Date()); renderCalendar(); renderDashboard(); renderList(); });
+
+// trocar de visão
+document.querySelectorAll(".view-switch button").forEach(b => {
+  b.addEventListener("click", () => { state.view = b.dataset.view; syncViewButtons(); renderList(); });
+});
+function syncViewButtons(){
+  document.querySelectorAll(".view-switch button").forEach(b =>
+    b.classList.toggle("active", b.dataset.view === state.view));
+}
+
+// busca e filtros
+$("searchInput").addEventListener("input", debounce(e => { state.search = e.target.value; renderAll(); }, 200));
+$("filterStatus").addEventListener("change", e => { state.fStatus = e.target.value; renderAll(); });
+$("filterResp").addEventListener("change", e => { state.fResp = e.target.value; renderAll(); });
+
+const findEvent = (id) => state.allEvents.find(e => e.id === id);
+
+/* =====================================================================
+   10) PARSER → PREVIEW EDITÁVEL
+   ===================================================================== */
+$("parseBtn").addEventListener("click", () => {
+  const txt = $("parserInput").value.trim();
+  if(!txt){ toast("Cole um texto para interpretar.", "error"); return; }
+  const parsed = parseMessage(txt);
+  openForm(parsed, { fromParser:true });
+});
+$("newBlankBtn").addEventListener("click", () => openForm(null));
+$("clearParserBtn").addEventListener("click", () => { $("parserInput").value = ""; });
+
+/* =====================================================================
+   11) FORMULÁRIO (preview de criação e edição reaproveitam o mesmo modal)
+   ===================================================================== */
+let isSaving = false;   // trava contra duplo-clique
+
+function openForm(data, opts = {}){
+  const editing = data && data.id;
+  const e = Object.assign({
+    aniversariante:"", responsavel:"", celular:"", tema:"", local:"", pacote:"",
+    data:"", hora_inicio:"", valor_pago:0, valor_restante:0,
+    status:"pendente", observacao:""
+  }, data || {});
+
+  const title = editing ? "Editar agendamento" : (opts.fromParser ? "Revisar e salvar" : "Novo agendamento");
+
+  // alerta de duplicata: mesma data + mesmo aniversariante (ignorando o próprio id)
+  const dup = e.data && e.aniversariante && state.allEvents.find(x =>
+      x.id !== e.id && x.data === e.data &&
+      (x.aniversariante||"").toLowerCase() === (e.aniversariante||"").toLowerCase());
+
+  openModal(`
+    <div class="modal-head">
+      <h3>${title}</h3>
+      <button class="modal-close" data-close aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body">
+      ${dup ? `<div class="dup-warn">⚠️ <span>Já existe um agendamento para <b>${escapeHtml(e.aniversariante)}</b> em <b>${formatDisplayDate(e.data).split(" ")[0]}</b>. Verifique se não é duplicado.</span></div>` : ""}
+      <form id="evForm" class="form-grid">
+        <div class="full"><label>Aniversariante / Cliente *</label><input name="aniversariante" value="${attr(e.aniversariante)}" required /></div>
+        <div><label>Data *</label><input name="data" type="date" value="${attr(e.data)}" required /></div>
+        <div><label>Hora início</label><input name="hora_inicio" type="time" value="${attr(e.hora_inicio)}" /></div>
+        <div><label>Responsável</label><input name="responsavel" value="${attr(e.responsavel)}" /></div>
+        <div><label>Celular</label><input name="celular" value="${attr(e.celular)}" /></div>
+        <div><label>Local</label><input name="local" value="${attr(e.local)}" /></div>
+        <div><label>Pacote</label><input name="pacote" value="${attr(e.pacote)}" /></div>
+        <div><label>Tema</label><input name="tema" value="${attr(e.tema)}" /></div>
+        <div><label>Status</label>
+          <select name="status">
+            ${["pendente","confirmado","concluído","cancelado"].map(s=>`<option${s===(e.status||(e.concluido?"concluído":"pendente"))?" selected":""}>${s}</option>`).join("")}
+          </select>
+        </div>
+        <div><label>Valor pago (R$)</label><input name="valor_pago" type="text" inputmode="decimal" value="${e.valor_pago?String(e.valor_pago).replace(".",","):""}" placeholder="0,00" /></div>
+        <div><label>Valor restante (R$)</label><input name="valor_restante" type="text" inputmode="decimal" value="${e.valor_restante?String(e.valor_restante).replace(".",","):""}" placeholder="0,00" /></div>
+        <div class="full"><label>Observação</label><textarea name="observacao" rows="2">${escapeHtml(e.observacao||"")}</textarea></div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-soft" data-close>Cancelar</button>
+      <button class="btn btn-primary" id="saveBtn" style="width:auto;">${editing?"Salvar alterações":"Salvar agendamento"}</button>
+    </div>
+  `);
+
+  $("saveBtn").addEventListener("click", () => saveEvent(e.id));
+}
+
+async function saveEvent(existingId){
+  if(isSaving) return;                       // trava de duplo-clique
+  const form = $("evForm");
+  const fd = new FormData(form);
+  const status = fd.get("status");
+
+  const payload = {
+    aniversariante: (fd.get("aniversariante")||"").trim(),
+    data:           fd.get("data"),
+    hora_inicio:    fd.get("hora_inicio")||"",
+    responsavel:    (fd.get("responsavel")||"").trim(),
+    celular:        (fd.get("celular")||"").trim(),
+    local:          (fd.get("local")||"").trim(),
+    pacote:         (fd.get("pacote")||"").trim(),
+    tema:           (fd.get("tema")||"").trim(),
+    status,
+    concluido:      status === "concluído",
+    valor_pago:     parseMoney(fd.get("valor_pago")),
+    valor_restante: parseMoney(fd.get("valor_restante")),
+    observacao:     (fd.get("observacao")||"").trim(),
+    ownerUid:       state.user.uid,
+    updatedAt:      serverTimestamp()
+  };
+
+  if(!payload.aniversariante){ toast("Informe o aniversariante/cliente.", "error"); return; }
+  if(!payload.data){ toast("Informe a data.", "error"); return; }
+
+  const btn = $("saveBtn");
+  isSaving = true; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try{
+    if(existingId){
+      await updateDoc(fbDoc(db,"agendamentos",existingId), payload);
+      toast("Alterações salvas.", "success");
+    }else{
+      payload.createdAt = serverTimestamp();
+      await addDoc(COL, payload);
+      toast("Agendamento criado.", "success");
+      $("parserInput").value = "";
+    }
+    closeModal();
+  }catch(err){
+    handleError(err, "Não foi possível salvar.");
+  }finally{
+    isSaving = false; if($("saveBtn")){ btn.disabled=false; btn.textContent="Salvar"; }
+  }
+}
+
+/* =====================================================================
+   12) DETALHES + AÇÕES
+   ===================================================================== */
+function openDetail(id){
+  const e = findEvent(id);
+  if(!e) return;
+  const status = e.status || (e.concluido ? "concluído" : "pendente");
+  const row = (ic,k,v) => v ? `<div class="detail-row"><span class="ic">${ic}</span><span class="k">${k}</span><span class="v">${escapeHtml(String(v))}</span></div>` : "";
+
+  openModal(`
+    <div class="modal-head">
+      <h3>${escapeHtml(e.aniversariante || e.tema || "Detalhes")}</h3>
+      <button class="modal-close" data-close aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:8px;"><span class="badge ${status}"><span class="b-dot"></span>${status}</span></div>
+      ${row("📅","Data", formatDisplayDate(e.data))}
+      ${row("⏰","Hora", e.hora_inicio)}
+      ${row("👤","Responsável", e.responsavel)}
+      ${row("📞","Celular", e.celular)}
+      ${row("📍","Local", e.local)}
+      ${row("📦","Pacote", e.pacote)}
+      ${row("🎨","Tema", e.tema)}
+      ${row("💵","Valor pago", formatMoney(e.valor_pago))}
+      ${row("⏳","A receber", formatMoney(e.valor_restante))}
+      ${row("📝","Observação", e.observacao)}
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-soft" id="toggleDone" style="width:auto;">${e.concluido?"↩️ Reabrir":"✅ Concluir"}</button>
+      <button class="btn btn-soft" id="editFromDetail" style="width:auto;">✏️ Editar</button>
+      <button class="btn btn-soft" id="delFromDetail" style="width:auto;color:var(--danger);border-color:var(--danger);">🗑️ Excluir</button>
+    </div>
+  `);
+
+  $("toggleDone").addEventListener("click", () => toggleDone(id));
+  $("editFromDetail").addEventListener("click", () => openForm(findEvent(id)));
+  $("delFromDetail").addEventListener("click", () => confirmDelete(id));
+}
+
+async function toggleDone(id){
+  const e = findEvent(id); if(!e) return;
+  const novoConcluido = !e.concluido;
+  try{
+    await updateDoc(fbDoc(db,"agendamentos",id), {
+      concluido: novoConcluido,
+      status: novoConcluido ? "concluído" : "pendente",
+      updatedAt: serverTimestamp()
     });
+    toast(novoConcluido ? "Marcado como concluído." : "Reaberto.", "success");
+    closeModal();
+  }catch(err){ handleError(err, "Não foi possível atualizar."); }
+}
 
-    // ============================================================
-    // ESTADO GLOBAL
-    // ============================================================
-    let allEvents = [];
-    let currentDate = new Date();
-    let selectedDate = null;
-    let editingId = null;
-    let unsubscribe = null;
-    let isSaving = false;
-    let currentModalId = null;
+/* Substitui confirm() nativo por modal consistente + oferece DESFAZER no toast */
+function confirmDelete(id){
+  const e = findEvent(id); if(!e) return;
+  openModal(`
+    <div class="modal-head"><h3>Excluir agendamento</h3><button class="modal-close" data-close aria-label="Fechar">✕</button></div>
+    <div class="modal-body">
+      <p style="margin:0;">Excluir <b>${escapeHtml(e.aniversariante || e.tema || "este evento")}</b> de <b>${formatDisplayDate(e.data).split(" ")[0]}</b>? Você poderá desfazer logo após.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-soft" data-close>Cancelar</button>
+      <button class="btn btn-primary" id="confirmDel" style="width:auto;background:var(--danger);">Excluir</button>
+    </div>
+  `);
+  $("confirmDel").addEventListener("click", () => doDelete(id));
+}
 
-    // DOM refs
-    const calendarGrid = document.getElementById('calendarGrid');
-    const monthYear = document.getElementById('monthYear');
-    const dayEventsDiv = document.getElementById('dayEvents');
-    const rawInput = document.getElementById('rawInput');
-    const parseBtn = document.getElementById('parseBtn');
-    const previewCard = document.getElementById('previewCard');
-    const fieldsContainer = document.getElementById('fieldsContainer');
-    const saveBtn = document.getElementById('saveBtn');
-    const cancelPreviewBtn = document.getElementById('cancelPreviewBtn');
-    const prevMonthBtn = document.getElementById('prevMonth');
-    const nextMonthBtn = document.getElementById('nextMonth');
-    const toast = document.getElementById('toast');
-    const syncDot = document.getElementById('syncDot');
-    const syncLabel = document.getElementById('syncLabel');
-    const eventCount = document.getElementById('eventCount');
-    const forceSyncBtn = document.getElementById('forceSyncBtn');
-    const detailModal = document.getElementById('detailModal');
-    const modalBody = document.getElementById('modalBody');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalClose = document.getElementById('modalClose');
-    const toggleDoneBtn = document.getElementById('toggleDoneBtn');
-    const editFromModalBtn = document.getElementById('editFromModalBtn');
-    const deleteFromModalBtn = document.getElementById('deleteFromModalBtn');
-    const startDateInput = document.getElementById('startDate');
-    const endDateInput = document.getElementById('endDate');
-    const exportPdfBtn = document.getElementById('exportPdfBtn');
-
-    // ============================================================
-    // TOAST E SYNC STATUS
-    // ============================================================
-    function showToast(msg, duration = 2500) {
-        toast.textContent = msg;
-        toast.classList.add('show');
-        clearTimeout(toast._timer);
-        toast._timer = setTimeout(() => toast.classList.remove('show'), duration);
-    }
-
-    function setSyncStatus(state) {
-        syncDot.className = 'dot ' + state;
-        const labels = { online: 'Sincronizado', offline: 'Offline', error: 'Erro' };
-        syncLabel.textContent = labels[state] || 'Sincronizado';
-    }
-
-    // ============================================================
-    // FORMATAÇÃO DE DATA
-    // ============================================================
-    function formatDateKey(year, month, day) {
-        return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    }
-
-    function formatDisplayDate(dateStr) {
-        try {
-            const d = new Date(dateStr + 'T00:00:00');
-            return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
-        } catch { return dateStr; }
-    }
-
-    function parseDateFromString(str) {
-        str = str.trim();
-        if (!str) return null;
-        const slashParts = str.split('/');
-        if (slashParts.length >= 2) {
-            let day = parseInt(slashParts[0]);
-            let month = parseInt(slashParts[1]) - 1;
-            let year = slashParts.length === 3 ? parseInt(slashParts[2]) : new Date().getFullYear();
-            if (slashParts.length === 3 && year < 100) year += 2000;
-            if (!isNaN(day) && !isNaN(month) && !isNaN(year)) return { year, month, day };
-        }
-        const monthNames = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-        // BUG CORRIGIDO: \w não inclui letras acentuadas, então "março"
-        // era cortado para "mar" e nunca era reconhecido. Agora o regex
-        // aceita letras acentuadas em português.
-        const regex = /(\d{1,2})\s+de\s+([a-záéíóúâêôãõç]+)(?:\s+de\s+(\d{4}))?/i;
-        const match = str.match(regex);
-        if (match) {
-            const day = parseInt(match[1]);
-            const monthName = match[2].toLowerCase();
-            const monthIndex = monthNames.indexOf(monthName);
-            if (monthIndex !== -1) {
-                const year = match[3] ? parseInt(match[3]) : new Date().getFullYear();
-                return { year, month: monthIndex, day };
-            }
-        }
-        const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (iso) return { year: parseInt(iso[1]), month: parseInt(iso[2])-1, day: parseInt(iso[3]) };
-        return null;
-    }
-
-    function normalizeDate(raw) {
-        const parsed = parseDateFromString(raw);
-        return parsed ? formatDateKey(parsed.year, parsed.month, parsed.day) : null;
-    }
-
-    // ============================================================
-    // KEYWORDS E PARSER
-    // ============================================================
-    const KEYWORD_MAP = {
-        'data':'data','responsável':'responsavel','responsavel':'responsavel','resp':'responsavel',
-        'celular':'celular','cel':'celular','telefone':'celular',
-        'tema':'tema','local':'local','valor pago':'valor_pago','valor':'valor_pago','pagamento':'valor_pago',
-        'observações':'observacao','observacao':'observacao','obs':'obs','observação':'observacao',
-        'valor restante':'valor_restante','restante':'valor_restante',
-        'pacote':'pacote','pacote contratado':'pacote',
-        'hora de início':'hora_inicio','hora inicio':'hora_inicio','hora':'hora_inicio','início':'hora_inicio',
-        'aniversariante':'aniversariante','nome':'aniversariante'
-    };
-    const DB_FIELDS = ['data','responsavel','celular','tema','hora_inicio','local','valor_pago','pacote','observacao','valor_restante','aniversariante','obs'];
-    const FIELD_LABELS = {
-        data:'Data', responsavel:'Responsável', celular:'Celular', tema:'Tema',
-        hora_inicio:'Hora de início', local:'Local', valor_pago:'Valor pago',
-        pacote:'Pacote', observacao:'Observação', valor_restante:'Valor restante',
-        aniversariante:'Aniversariante', obs:'Obs.'
-    };
-    const FIELD_ICONS = {
-        data:'📅', responsavel:'👤', celular:'📱', tema:'🎯',
-        hora_inicio:'🕐', local:'📍', valor_pago:'💰',
-        pacote:'📦', observacao:'📝', valor_restante:'💳',
-        aniversariante:'🎂', obs:'📌'
-    };
-
-    function mapKey(rawKey) {
-        const clean = rawKey.toLowerCase().replace(/[^a-záéíóúàâêôãõç ]/g,'').trim();
-        if (KEYWORD_MAP[clean]) return KEYWORD_MAP[clean];
-        // BUG CORRIGIDO: o loop original percorria as chaves na ordem de
-        // inserção do objeto. Como 'valor' vem antes de 'valor restante',
-        // um texto como "Valor Restante" era capturado por 'valor' e
-        // mapeado para valor_pago em vez de valor_restante. Agora
-        // ordenamos as chaves da mais específica (mais longa) para a
-        // mais genérica antes de procurar correspondência parcial.
-        const keys = Object.keys(KEYWORD_MAP).sort((a, b) => b.length - a.length);
-        for (let p of keys) if (clean.includes(p) || p.includes(clean)) return KEYWORD_MAP[p];
-        return null;
-    }
-
-    function parseMessage(text) {
-        const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
-        const result = {};
-        let currentKey = null, currentValue = '';
-        for (let line of lines) {
-            const colon = line.indexOf(':');
-            if (colon !== -1) {
-                if (currentKey) { result[currentKey] = currentValue.trim(); currentKey = null; currentValue = ''; }
-                const key = line.substring(0, colon).trim();
-                const value = line.substring(colon+1).trim();
-                const mapped = mapKey(key);
-                if (mapped) {
-                    if (mapped === 'observacao' || mapped === 'obs') { currentKey = mapped; currentValue = value; }
-                    else {
-                        if (mapped === 'data') {
-                            const norm = normalizeDate(value);
-                            result[mapped] = norm || value;
-                        } else result[mapped] = value;
-                    }
-                } else {
-                    if (currentKey) currentValue += ' ' + line;
-                    else { if (!result.observacao) result.observacao = ''; result.observacao += ' ' + line; }
-                }
-            } else {
-                if (currentKey) currentValue += ' ' + line;
-                else { if (!result.observacao) result.observacao = ''; result.observacao += ' ' + line; }
-            }
-        }
-        if (currentKey) result[currentKey] = currentValue.trim();
-        for (let k in result) result[k] = result[k].trim();
-        if (!result.data) {
-            for (let line of lines) {
-                const parsed = parseDateFromString(line);
-                if (parsed) { result.data = formatDateKey(parsed.year, parsed.month, parsed.day); break; }
-            }
-        }
-        return result;
-    }
-
-    // ============================================================
-    // RENDER CALENDÁRIO
-    // ============================================================
-    function renderCalendar(events, year, month) {
-        const firstDay = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const daysInPrevMonth = new Date(year, month, 0).getDate();
-        const today = new Date();
-        const todayStr = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
-
-        const eventsMap = {};
-        events.forEach(ev => {
-            if (ev.data && /^\d{4}-\d{2}-\d{2}$/.test(ev.data)) {
-                if (!eventsMap[ev.data]) eventsMap[ev.data] = [];
-                eventsMap[ev.data].push(ev);
-            }
-        });
-
-        let html = '';
-        const weekdays = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-        weekdays.forEach(w => html += `<div class="weekday">${w}</div>`);
-
-        const startOffset = firstDay;
-        for (let i = daysInPrevMonth - startOffset + 1; i <= daysInPrevMonth; i++) {
-            html += `<div class="day other-month">${i}</div>`;
-        }
-
-        for (let d = 1; d <= daysInMonth; d++) {
-            const dateKey = formatDateKey(year, month, d);
-            const isToday = dateKey === todayStr;
-            const eventsOnDay = eventsMap[dateKey] || [];
-            const hasEvent = eventsOnDay.length > 0;
-            const allDone = hasEvent && eventsOnDay.every(e => e.concluido === true);
-            const isSelected = dateKey === selectedDate;
-            let classes = 'day';
-            if (isToday) classes += ' today';
-            if (hasEvent) classes += ' has-event';
-            if (allDone && hasEvent) classes += ' done';
-            if (isSelected) classes += ' selected';
-            html += `<div class="${classes}" data-date="${dateKey}">${d}</div>`;
-        }
-
-        const totalCells = startOffset + daysInMonth;
-        const remaining = (7 - (totalCells % 7)) % 7;
-        for (let d = 1; d <= remaining; d++) {
-            html += `<div class="day other-month">${d}</div>`;
-        }
-
-        calendarGrid.innerHTML = html;
-        monthYear.textContent = new Date(year, month).toLocaleDateString('pt-BR', { month:'long', year:'numeric' });
-
-        let count = 0;
-        for (let d = 1; d <= daysInMonth; d++) {
-            const dateKey = formatDateKey(year, month, d);
-            if (eventsMap[dateKey]) count += eventsMap[dateKey].length;
-        }
-        eventCount.textContent = count + ' evento' + (count !== 1 ? 's' : '');
-
-        document.querySelectorAll('.day:not(.other-month)').forEach(el => {
-            el.addEventListener('click', () => {
-                const date = el.dataset.date;
-                if (date) { selectedDate = date; renderCalendar(events, year, month); renderDayEvents(events, date); }
-            });
-        });
-
-        if (selectedDate) renderDayEvents(events, selectedDate);
-        else {
-            const firstEventDate = Object.keys(eventsMap).sort()[0];
-            selectedDate = firstEventDate || todayStr;
-            renderCalendar(events, year, month);
-        }
-    }
-
-    // ============================================================
-    // RENDER EVENTOS DO DIA
-    // ============================================================
-    function renderDayEvents(events, dateKey) {
-        const filtered = events.filter(ev => ev.data === dateKey);
-        if (filtered.length === 0) {
-            dayEventsDiv.innerHTML = `<div class="empty">📭 Nenhum agendamento para ${formatDisplayDate(dateKey)}</div>`;
-            return;
-        }
-        let html = `<div style="margin-bottom:8px;font-weight:500;">📋 ${filtered.length} agendamento(s) em ${formatDisplayDate(dateKey)}</div>`;
-        filtered.forEach(ev => {
-            const nome = ev.aniversariante || 'Evento';
-            const resp = ev.responsavel || '';
-            const local = ev.local || '';
-            const hora = ev.hora_inicio || '';
-            const done = ev.concluido === true;
-            const id = ev.id;
-            html += `
-                <div class="event-item ${done ? 'done' : ''}">
-                    <div class="info" data-id="${id}">
-                        <div class="name">
-                            ${done ? '✅' : '🎉'} ${nome}
-                            <span class="status-badge ${done ? 'done' : ''}">${done ? 'Concluído' : 'Pendente'}</span>
-                        </div>
-                        <div class="detail">${resp} ${local ? '· ' + local : ''} ${hora ? '· ' + hora : ''}</div>
-                    </div>
-                    <div class="actions">
-                        <button data-id="${id}" class="edit-btn" title="Editar">✏️</button>
-                        <button data-id="${id}" class="delete-btn" title="Excluir">🗑️</button>
-                    </div>
-                </div>
-            `;
-        });
-        dayEventsDiv.innerHTML = html;
-
-        document.querySelectorAll('.event-item .info').forEach(el => {
-            el.addEventListener('click', () => {
-                const id = el.dataset.id;
-                const ev = allEvents.find(e => e.id === id);
-                if (ev) openDetailModal(ev);
-            });
-        });
-
-        document.querySelectorAll('.edit-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const id = btn.dataset.id;
-                const ev = allEvents.find(e => e.id === id);
-                if (ev) loadEventForEdit(ev);
-            });
-        });
-
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const id = btn.dataset.id;
-                if (!confirm('Excluir este agendamento?')) return;
-                try {
-                    await deleteDoc(doc(db, 'agendamentos', id));
-                    showToast('Excluído com sucesso');
-                } catch (err) {
-                    showToast('Erro ao excluir: ' + err.message);
-                }
-            });
-        });
-    }
-
-    // ============================================================
-    // MODAL
-    // ============================================================
-    function openDetailModal(ev) {
-        currentModalId = ev.id;
-        const done = ev.concluido === true;
-        modalTitle.innerHTML = `${done ? '✅' : '📋'} ${ev.aniversariante || 'Evento'}`;
-
-        let bodyHTML = '';
-        DB_FIELDS.forEach(field => {
-            const value = ev[field] || '';
-            const label = FIELD_LABELS[field] || field;
-            const icon = FIELD_ICONS[field] || '';
-            const display = value || '—';
-            const isEmpty = !value;
-            const full = field === 'observacao' || field === 'obs';
-            bodyHTML += `
-                <div class="modal-field ${full ? 'full' : ''}">
-                    <div class="label">${icon} ${label}</div>
-                    <div class="value ${isEmpty ? 'empty' : ''}">${display}</div>
-                </div>
-            `;
-        });
-        modalBody.innerHTML = bodyHTML;
-
-        toggleDoneBtn.textContent = done ? '↩️ Reabrir' : '✅ Marcar como concluído';
-        toggleDoneBtn.className = `btn ${done ? 'btn-secondary' : 'btn-success'}`;
-        detailModal.classList.add('open');
-    }
-
-    function closeDetailModal() {
-        detailModal.classList.remove('open');
-        currentModalId = null;
-    }
-
-    toggleDoneBtn.addEventListener('click', async () => {
-        if (!currentModalId) return;
-        const ev = allEvents.find(e => e.id === currentModalId);
-        if (!ev) return;
-        const newStatus = ev.concluido !== true;
-        try {
-            await updateDoc(doc(db, 'agendamentos', currentModalId), { concluido: newStatus });
-            showToast(newStatus ? '✅ Marcado como concluído' : '↩️ Reaberto');
-            closeDetailModal();
-        } catch (err) {
-            showToast('Erro: ' + err.message);
-        }
+async function doDelete(id){
+  const e = findEvent(id); if(!e) return;
+  // guarda uma cópia para permitir "desfazer" (recria com mesmos campos)
+  const { id:_omit, ...snapshot } = e;
+  try{
+    await deleteDoc(fbDoc(db,"agendamentos",id));
+    closeModal();
+    toast("Agendamento excluído.", "success", {
+      actionLabel:"Desfazer",
+      onAction: async () => {
+        try{
+          snapshot.updatedAt = serverTimestamp();
+          await addDoc(COL, snapshot);
+          toast("Exclusão desfeita.", "success");
+        }catch(err){ handleError(err, "Não foi possível desfazer."); }
+      }
     });
+  }catch(err){ handleError(err, "Não foi possível excluir."); }
+}
 
-    editFromModalBtn.addEventListener('click', () => {
-        if (!currentModalId) return;
-        const ev = allEvents.find(e => e.id === currentModalId);
-        if (ev) {
-            closeDetailModal();
-            loadEventForEdit(ev);
-        }
-    });
+/* =====================================================================
+   13) MODAIS — foco preso (focus trap), fecha no ✕, fora e ESC
+   ===================================================================== */
+let lastFocus = null;
+function openModal(innerHtml){
+  closeModal();
+  lastFocus = document.activeElement;
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  overlay.innerHTML = `<div class="modal" role="dialog" aria-modal="true">${innerHtml}</div>`;
+  document.body.appendChild(overlay);
 
-    deleteFromModalBtn.addEventListener('click', async () => {
-        if (!currentModalId) return;
-        if (!confirm('Excluir este agendamento?')) return;
-        try {
-            await deleteDoc(doc(db, 'agendamentos', currentModalId));
-            showToast('Excluído');
-            closeDetailModal();
-        } catch (err) {
-            showToast('Erro: ' + err.message);
-        }
-    });
+  overlay.addEventListener("click", (ev) => {
+    if(ev.target === overlay || ev.target.closest("[data-close]")) closeModal();
+  });
+  overlay.addEventListener("keydown", trapFocus);
+  // foco no primeiro campo/botão
+  const focusable = overlay.querySelectorAll('input,select,textarea,button');
+  if(focusable.length) focusable[0].focus();
+}
+function closeModal(){
+  const o = document.querySelector(".overlay");
+  if(o){ o.remove(); if(lastFocus) lastFocus.focus(); }
+}
+function trapFocus(ev){
+  if(ev.key === "Escape"){ closeModal(); return; }
+  if(ev.key !== "Tab") return;
+  const f = [...ev.currentTarget.querySelectorAll('input,select,textarea,button,[tabindex]:not([tabindex="-1"])')].filter(el=>!el.disabled && el.offsetParent!==null);
+  if(!f.length) return;
+  const first = f[0], last = f[f.length-1];
+  if(ev.shiftKey && document.activeElement === first){ ev.preventDefault(); last.focus(); }
+  else if(!ev.shiftKey && document.activeElement === last){ ev.preventDefault(); first.focus(); }
+}
 
-    modalClose.addEventListener('click', closeDetailModal);
-    detailModal.addEventListener('click', (e) => {
-        if (e.target === detailModal) closeDetailModal();
-    });
+/* =====================================================================
+   14) TOASTS
+   ===================================================================== */
+function toast(msg, type="", opts={}){
+  const wrap = $("toasts");
+  const el = document.createElement("div");
+  el.className = `toast ${type}`;
+  const icon = type==="success" ? "✅" : type==="error" ? "⚠️" : "ℹ️";
+  el.innerHTML = `<span class="t-icon">${icon}</span><span class="t-msg">${escapeHtml(msg)}</span>`;
+  if(opts.actionLabel){
+    const b = document.createElement("button");
+    b.className = "t-action"; b.textContent = opts.actionLabel;
+    b.addEventListener("click", () => { opts.onAction?.(); el.remove(); });
+    el.appendChild(b);
+  }
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), opts.actionLabel ? 7000 : 3500);
+}
 
-    // ============================================================
-    // EDIÇÃO / PREVIEW
-    // ============================================================
-    function loadEventForEdit(ev) {
-        const container = fieldsContainer;
-        container.innerHTML = '';
-        DB_FIELDS.forEach(field => {
-            const value = ev[field] || '';
-            const div = document.createElement('div');
-            div.className = 'field' + (field === 'observacao' || field === 'obs' ? ' field-full' : '');
-            const label = document.createElement('label');
-            label.textContent = FIELD_LABELS[field] || field;
-            if (field === 'observacao' || field === 'obs') {
-                const textarea = document.createElement('textarea');
-                textarea.rows = 2;
-                textarea.value = value;
-                textarea.id = 'field-' + field;
-                div.appendChild(label); div.appendChild(textarea);
-            } else {
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.value = value;
-                input.id = 'field-' + field;
-                div.appendChild(label); div.appendChild(input);
-            }
-            container.appendChild(div);
-        });
-        previewCard.classList.remove('hidden');
-        saveBtn.textContent = '🔄 Atualizar';
-        editingId = ev.id;
-        previewCard.scrollIntoView({ behavior: 'smooth' });
+function handleError(err, friendly){
+  console.error(err);
+  toast(friendly || "Ocorreu um erro.", "error");
+}
+
+/* =====================================================================
+   15) EXPORTAÇÃO DE RELATÓRIOS (PDF + Excel + CSV)
+   ===================================================================== */
+function initReportDates(){
+  const now = new Date();
+  $("repStart").value = formatDateKey(new Date(now.getFullYear(), now.getMonth(), 1));
+  $("repEnd").value   = formatDateKey(new Date(now.getFullYear(), now.getMonth()+1, 0));
+}
+
+function getReportData(){
+  const ini = $("repStart").value, fim = $("repEnd").value;
+  if(!ini || !fim){ toast("Selecione o período.", "error"); return null; }
+  if(ini > fim){ toast("A data inicial deve ser ≤ data final.", "error"); return null; }   // validação
+  const rows = applyFilters(state.allEvents)
+    .filter(e => e.data >= ini && e.data <= fim)
+    .sort((a,b) => (a.data+a.hora_inicio).localeCompare(b.data+b.hora_inicio));
+  return { ini, fim, rows };
+}
+
+$("exportPdf").addEventListener("click", () => {
+  const data = getReportData(); if(!data) return;
+  const { ini, fim, rows } = data;
+  const totalR = rows.reduce((s,e)=>s+(Number(e.valor_pago)||0),0);
+  const totalP = rows.reduce((s,e)=>s+(Number(e.valor_restante)||0),0);
+  const geradoEm = new Date().toLocaleString("pt-BR");
+
+  // monta a folha estilizada fora da tela e converte em PDF (com paginação real)
+  $("reportSheet").innerHTML = `
+    <div class="rep-header">
+      <h1>Relatório de Agendamentos</h1>
+      <div class="meta">Período: ${formatDisplayDate(ini).split(" ")[0]} a ${formatDisplayDate(fim).split(" ")[0]} · Gerado em ${geradoEm}</div>
+    </div>
+    <div class="rep-body">
+      <table class="rep-table">
+        <thead><tr><th>Data</th><th>Hora</th><th>Cliente</th><th>Responsável</th><th>Local</th><th>Status</th><th>Pago</th><th>A receber</th></tr></thead>
+        <tbody>
+          ${rows.map(e=>`<tr>
+            <td>${formatDisplayDate(e.data).split(" ")[0]}</td>
+            <td>${e.hora_inicio||"—"}</td>
+            <td>${escapeHtml(e.aniversariante||e.tema||"—")}</td>
+            <td>${escapeHtml(e.responsavel||"—")}</td>
+            <td>${escapeHtml(e.local||"—")}</td>
+            <td>${e.status||(e.concluido?"concluído":"pendente")}</td>
+            <td>${formatMoney(e.valor_pago)}</td>
+            <td>${formatMoney(e.valor_restante)}</td>
+          </tr>`).join("") || `<tr><td colspan="8" style="text-align:center;padding:20px;">Nenhum evento no período.</td></tr>`}
+        </tbody>
+      </table>
+      <div class="rep-totals">
+        <span class="r">Total recebido: ${formatMoney(totalR)}</span>
+        <span class="p">Total a receber: ${formatMoney(totalP)}</span>
+        <span>Eventos: ${rows.length}</span>
+      </div>
+    </div>`;
+
+  toast("Gerando PDF…");
+  html2pdf().set({
+    margin:[10,10,14,10],
+    filename:`relatorio_${ini}_a_${fim}.pdf`,
+    image:{type:"jpeg",quality:.98},
+    html2canvas:{scale:2},
+    jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
+    pagebreak:{mode:["css","legacy"]}
+  }).from($("reportSheet")).toPdf().get("pdf").then(pdf => {
+    // paginação real: numera as páginas no rodapé
+    const total = pdf.internal.getNumberOfPages();
+    for(let i=1;i<=total;i++){
+      pdf.setPage(i);
+      pdf.setFontSize(9); pdf.setTextColor(120);
+      pdf.text(`Página ${i} de ${total}`, pdf.internal.pageSize.getWidth()/2, pdf.internal.pageSize.getHeight()-6, {align:"center"});
     }
+  }).save().then(() => toast("PDF gerado.", "success"));
+});
 
-    function collectPreviewData() {
-        const data = {};
-        DB_FIELDS.forEach(field => {
-            const el = document.getElementById('field-' + field);
-            if (el) data[field] = el.value.trim();
-        });
-        return data;
-    }
+function rowsToMatrix(rows){
+  const header = ["Data","Hora","Cliente","Responsável","Celular","Local","Pacote","Tema","Status","Valor Pago","Valor Restante","Observação"];
+  const body = rows.map(e => [
+    e.data, e.hora_inicio||"", e.aniversariante||"", e.responsavel||"", e.celular||"",
+    e.local||"", e.pacote||"", e.tema||"", e.status||(e.concluido?"concluído":"pendente"),
+    Number(e.valor_pago)||0, Number(e.valor_restante)||0, (e.observacao||"").replace(/\n/g," ")
+  ]);
+  return [header, ...body];
+}
 
-    function resetPreview() {
-        previewCard.classList.add('hidden');
-        editingId = null;
-        saveBtn.textContent = '💾 Salvar';
-        fieldsContainer.innerHTML = '';
-    }
+$("exportXlsx").addEventListener("click", () => {
+  const data = getReportData(); if(!data) return;
+  const ws = XLSX.utils.aoa_to_sheet(rowsToMatrix(data.rows));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Agendamentos");
+  XLSX.writeFile(wb, `relatorio_${data.ini}_a_${data.fim}.xlsx`);
+  toast("Excel gerado.", "success");
+});
 
-    parseBtn.addEventListener('click', () => {
-        const raw = rawInput.value.trim();
-        if (!raw) { showToast('Cole uma mensagem'); return; }
-        const parsed = parseMessage(raw);
-        const container = fieldsContainer;
-        container.innerHTML = '';
-        DB_FIELDS.forEach(field => {
-            const value = parsed[field] || '';
-            const div = document.createElement('div');
-            div.className = 'field' + (field === 'observacao' || field === 'obs' ? ' field-full' : '');
-            const label = document.createElement('label');
-            label.textContent = FIELD_LABELS[field] || field;
-            if (field === 'observacao' || field === 'obs') {
-                const textarea = document.createElement('textarea');
-                textarea.rows = 2;
-                textarea.value = value;
-                textarea.id = 'field-' + field;
-                div.appendChild(label); div.appendChild(textarea);
-            } else {
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.value = value;
-                input.id = 'field-' + field;
-                div.appendChild(label); div.appendChild(input);
-            }
-            container.appendChild(div);
-        });
-        previewCard.classList.remove('hidden');
-        saveBtn.textContent = '💾 Salvar';
-        editingId = null;
-        previewCard.scrollIntoView({ behavior: 'smooth' });
-    });
+$("exportCsv").addEventListener("click", () => {
+  const data = getReportData(); if(!data) return;
+  const matrix = rowsToMatrix(data.rows);
+  const csv = matrix.map(r => r.map(c => {
+    const s = String(c).replace(/"/g,'""');
+    return /[",;\n]/.test(s) ? `"${s}"` : s;
+  }).join(";")).join("\n");
+  const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8;"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `relatorio_${data.ini}_a_${data.fim}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("CSV gerado.", "success");
+});
 
-    cancelPreviewBtn.addEventListener('click', resetPreview);
+/* =====================================================================
+   16) HELPERS
+   ===================================================================== */
+function escapeHtml(s){
+  return String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+const attr = (s) => escapeHtml(s).replace(/"/g,"&quot;");
+function debounce(fn, ms){ let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
 
-    saveBtn.addEventListener('click', async () => {
-        if (isSaving) return;
-        const data = collectPreviewData();
-        const hasData = DB_FIELDS.some(f => data[f] && data[f].trim() !== '');
-        if (!hasData) { showToast('Preencha ao menos um campo'); return; }
-        if (data.data) {
-            const norm = normalizeDate(data.data);
-            if (norm) data.data = norm;
-        }
-        if (!data.data) { showToast('Data é obrigatória'); return; }
+/* =====================================================================
+   17) TESTES SIMPLES (utilitários de data + parser)
+   ---------------------------------------------------------------------
+   Abra o console (F12) para ver o resultado. Não afetam a UI.
+   ===================================================================== */
+(function runSelfTests(){
+  let ok = 0, fail = 0;
+  const eq = (got, exp, label) => {
+    const pass = JSON.stringify(got) === JSON.stringify(exp);
+    if(pass) ok++; else { fail++; console.warn(`✗ ${label}: esperado ${JSON.stringify(exp)}, obtido ${JSON.stringify(got)}`); }
+  };
+  const base = new Date(2026, 6, 1); // 01/07/2026 (quarta)
 
-        isSaving = true;
-        saveBtn.disabled = true;
-        try {
-            if (editingId) {
-                await updateDoc(doc(db, 'agendamentos', editingId), data);
-                showToast('Atualizado!');
-            } else {
-                await addDoc(eventsCollection, data);
-                showToast('Salvo!');
-            }
-            resetPreview();
-            rawInput.value = '';
-        } catch (err) {
-            showToast('Erro: ' + err.message);
-        } finally {
-            isSaving = false;
-            saveBtn.disabled = false;
-        }
-    });
+  eq(formatDateKey(new Date(2026,6,19)), "2026-07-19", "formatDateKey");
+  eq(normalizeDate("2026-07-19").getDate(), 19, "normalizeDate dia");
+  eq(parseDateFromString("19/07/2026"), "2026-07-19", "data dd/mm/aaaa");
+  eq(parseDateFromString("19/07"), `${base.getFullYear()}-07-19`, "data dd/mm");
+  eq(parseDateFromString("19/07/26"), "2026-07-19", "data dd/mm/aa");
+  eq(parseDateFromString("19 de julho de 2026"), "2026-07-19", "data por extenso");
+  eq(parseDateFromString("3 de março"), `${(new Date()).getFullYear()}-03-03`, "março com acento");
+  eq(parseDateFromString("2026-07-19"), "2026-07-19", "ISO");
+  eq(parseDateFromString("amanhã", base), "2026-07-02", "amanhã");
+  eq(parseMoney("R$ 1.500,00"), 1500, "money milhar");
+  eq(parseMoney("500,50"), 500.5, "money decimal");
 
-    prevMonthBtn.addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() - 1);
-        renderCalendar(allEvents, currentDate.getFullYear(), currentDate.getMonth());
-    });
-    nextMonthBtn.addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        renderCalendar(allEvents, currentDate.getFullYear(), currentDate.getMonth());
-    });
+  const p = parseMessage("Responsável: João\nCel: (82) 99999-8888\nValor: R$ 1.500,00\nRestante: 500,00\nData: 19/07/2026");
+  eq(p.responsavel, "João", "parser responsavel");
+  eq(p.valor_pago, 1500, "parser valor_pago");
+  eq(p.valor_restante, 500, "parser valor_restante (longo antes de curto)");
+  eq(p.data, "2026-07-19", "parser data");
 
-    forceSyncBtn.addEventListener('click', () => {
-        showToast('Recarregando...');
-        if (unsubscribe) { unsubscribe(); unsubscribe = null; }
-        initFirebaseListener();
-    });
-
-    // ============================================================
-    // EXPORTAÇÃO PDF (CORRIGIDA)
-    // ============================================================
-    function getEventsInPeriod(startDate, endDate) {
-        return allEvents.filter(ev => {
-            if (!ev.data) return false;
-            // ev.data já está no formato YYYY-MM-DD
-            return ev.data >= startDate && ev.data <= endDate;
-        });
-    }
-
-    function generatePDFContent(startDate, endDate) {
-        const filtered = getEventsInPeriod(startDate, endDate);
-        filtered.sort((a, b) => a.data.localeCompare(b.data));
-
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
-        const timeStr = now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
-
-        let rows = '';
-        if (filtered.length === 0) {
-            rows = `<tr><td colspan="6" style="text-align:center;padding:20px;color:#6b7f93;">Nenhum agendamento encontrado no período.</td></tr>`;
-        } else {
-            filtered.forEach(ev => {
-                const status = ev.concluido ? '✅ Concluído' : '⏳ Pendente';
-                rows += `
-                    <tr>
-                        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;">${formatDisplayDate(ev.data)}</td>
-                        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;">${ev.responsavel || '—'}</td>
-                        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;">${ev.tema || '—'}</td>
-                        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;">${ev.local || '—'}</td>
-                        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;">${ev.valor_pago || '—'}</td>
-                        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:500;color:${ev.concluido ? '#2ecc71' : '#e74c3c'};">${status}</td>
-                    </tr>
-                `;
-            });
-        }
-
-        return `
-            <div style="font-family: 'Inter', sans-serif; color: #0a1e2f; max-width: 800px; margin: 0 auto;">
-                <div style="background: linear-gradient(135deg, #1e3a5f, #2b5a8a); padding: 30px 40px; border-radius: 16px 16px 0 0; color: white;">
-                    <h1 style="font-size: 28px; font-weight: 700; margin: 0;">📋 Relatório de Agendamentos</h1>
-                    <p style="margin: 8px 0 0; opacity: 0.9; font-size: 16px;">
-                        Período: ${formatDisplayDate(startDate)} a ${formatDisplayDate(endDate)}
-                    </p>
-                </div>
-                <div style="background: white; padding: 30px 40px; border-radius: 0 0 16px 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; border-top: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
-                        <span style="font-weight: 600; color: #1e3a5f; font-size: 1.1rem;">Total de eventos: <span style="color: #2b5a8a;">${filtered.length}</span></span>
-                        <span style="color: #6b7f93; font-size: 0.9rem;">Gerado em ${dateStr} às ${timeStr}</span>
-                    </div>
-                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
-                        <thead>
-                            <tr style="background: #f1f5f9; border-radius: 12px;">
-                                <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #1e3a5f;">Data</th>
-                                <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #1e3a5f;">Responsável</th>
-                                <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #1e3a5f;">Tema</th>
-                                <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #1e3a5f;">Local</th>
-                                <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #1e3a5f;">Valor</th>
-                                <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #1e3a5f;">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${rows}
-                        </tbody>
-                    </table>
-                    <div style="margin-top: 24px; padding-top: 16px; border-top: 2px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 0.8rem; color: #6b7f93;">
-                        <span>Agenda Profissional — Relatório automático</span>
-                        <span>Página 1/1</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    exportPdfBtn.addEventListener('click', async () => {
-        const start = startDateInput.value;
-        const end = endDateInput.value;
-        if (!start || !end) {
-            showToast('Selecione o período inicial e final.');
-            return;
-        }
-        if (start > end) {
-            showToast('Data inicial não pode ser maior que a final.');
-            return;
-        }
-
-        // Gera o conteúdo HTML para o PDF
-        const contentHTML = generatePDFContent(start, end);
-        const pdfElement = document.getElementById('pdfContent');
-        pdfElement.innerHTML = contentHTML;
-
-        // BUG CORRIGIDO: o html2canvas pode capturar em branco elementos
-        // com opacity:0 ou fora do viewport. Tornamos o elemento
-        // temporariamente visível (mas com z-index negativo, então não
-        // aparece sobre o resto da página) só durante a geração do PDF.
-        pdfElement.style.opacity = '1';
-
-        // Configuração do PDF
-        const opt = {
-            margin:        [0.5, 0.5, 0.5, 0.5], // em polegadas
-            filename:     `relatorio_agendamentos_${start}_a_${end}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, letterRendering: true, useCORS: true, logging: false, backgroundColor: '#ffffff' },
-            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
-        };
-
-        try {
-            showToast('Gerando PDF...', 3000);
-            // Pequeno delay para garantir que o navegador finalizou o
-            // reflow/paint do conteúdo antes do html2canvas capturar.
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await html2pdf().set(opt).from(pdfElement).save();
-            showToast('PDF gerado com sucesso!');
-        } catch (error) {
-            console.error('Erro ao gerar PDF:', error);
-            showToast('Erro ao gerar PDF: ' + error.message);
-        } finally {
-            pdfElement.innerHTML = '';
-            pdfElement.style.opacity = '0';
-        }
-    });
-
-    // ============================================================
-    // DEFINIR PERÍODO PADRÃO (MÊS ATUAL)
-    // ============================================================
-    function setDefaultPeriod() {
-        const now = new Date();
-        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        const start = formatDateKey(firstDay.getFullYear(), firstDay.getMonth(), firstDay.getDate());
-        const end = formatDateKey(lastDay.getFullYear(), lastDay.getMonth(), lastDay.getDate());
-        startDateInput.value = start;
-        endDateInput.value = end;
-    }
-    setDefaultPeriod();
-
-    // ============================================================
-    // FIREBASE LISTENER
-    // ============================================================
-    function initFirebaseListener() {
-        const q = query(eventsCollection, orderBy('data'));
-        unsubscribe = onSnapshot(q, (snapshot) => {
-            const events = [];
-            // CORRIGIDO: o parâmetro chamava-se "doc", o que ofuscava
-            // (shadowing) a função doc() importada do Firestore.
-            snapshot.forEach(docSnap => {
-                const data = docSnap.data();
-                data.id = docSnap.id;
-                events.push(data);
-            });
-            allEvents = events;
-            renderCalendar(events, currentDate.getFullYear(), currentDate.getMonth());
-            setSyncStatus('online');
-        }, (error) => {
-            console.error('Firebase error:', error);
-            setSyncStatus('error');
-            showToast('Erro de sincronização: ' + error.message);
-            setTimeout(() => {
-                if (unsubscribe) { unsubscribe(); unsubscribe = null; }
-                initFirebaseListener();
-            }, 10000);
-        });
-    }
-
-    // ============================================================
-    // INICIALIZAÇÃO
-    // ============================================================
-    const now = new Date();
-    currentDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    const todayStr = formatDateKey(now.getFullYear(), now.getMonth(), now.getDate());
-    selectedDate = todayStr;
-    // O listener do Firestore agora é iniciado automaticamente dentro de
-    // onAuthStateChanged, assim que o login anônimo é confirmado.
-
-    console.log('App profissional com autenticação anônima e PDF corrigido.');
+  console.log(`%cTestes: ${ok} ok, ${fail} falha(s)`, `color:${fail?"#dc2626":"#16a34a"};font-weight:bold;`);
+})();
 </script>
 </body>
 </html>
