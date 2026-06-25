@@ -2,8 +2,17 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Agenda Profissional</title>
+
+<!-- ===== PWA: instalável e com aparência de app nativo ===== -->
+<meta name="theme-color" content="#1e3a5f" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Agenda" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="apple-touch-icon" href="./icon-192.png" />
 
 <!-- Inter via fonte do sistema com fallback; se houver internet, usa a do Google -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -309,6 +318,53 @@ button{font-family:inherit;cursor:pointer;}
 .rep-totals{margin-top:16px;display:flex;gap:24px;font-size:13px;font-weight:700;}
 .rep-totals .r{color:var(--success);}
 .rep-totals .p{color:var(--warning);}
+
+/* ============================== APARÊNCIA DE APP NATIVO (PWA) ============================== */
+/* respeita a barra de status (notch) quando instalado em tela cheia */
+.app-header{ padding-top:calc(14px + env(safe-area-inset-top)); }
+
+/* barra de abas inferior — só aparece no celular */
+.tabbar{ display:none; }
+.fab{ display:none; }
+
+@media(max-width:879px){
+  /* espaço para a barra inferior não cobrir o conteúdo */
+  .container{ padding-bottom:96px; }
+
+  /* sistema de abas: esconde os cards marcados e mostra só os da aba ativa */
+  .tabbed{ display:none !important; }
+  body.tab-agenda    .t-agenda    { display:block !important; }
+  body.tab-novo      .t-novo      { display:block !important; }
+  body.tab-relatorio .t-relatorio { display:block !important; }
+
+  .tabbar{
+    display:flex; position:fixed; left:0; right:0; bottom:0; z-index:50;
+    background:rgba(255,255,255,.92); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    border-top:1px solid var(--border);
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  }
+  .tabbar button{
+    flex:1; border:none; background:none; display:flex; flex-direction:column; align-items:center; gap:3px;
+    font-size:11px; font-weight:600; color:var(--text-mute); padding:6px 0; border-radius:12px;
+  }
+  .tabbar button .ti{ font-size:20px; line-height:1; }
+  .tabbar button.active{ color:var(--navy-2); background:var(--accent-soft); }
+
+  .fab{
+    display:flex; position:fixed; right:18px; z-index:55;
+    bottom:calc(72px + env(safe-area-inset-bottom));
+    width:56px; height:56px; border-radius:50%; border:none; color:#fff; font-size:30px; line-height:1;
+    align-items:center; justify-content:center;
+    background:linear-gradient(135deg,var(--navy-1),var(--navy-2));
+    box-shadow:0 8px 24px rgba(15,23,42,.32);
+  }
+  .fab:active{ transform:scale(.94); }
+
+  /* alvos de toque maiores e tipografia um pouco mais folgada no celular */
+  .day{ min-height:52px; }
+  .btn{ padding:13px 16px; }
+  .ev-actions button{ width:38px; height:38px; }
+}
 </style>
 </head>
 
@@ -359,6 +415,7 @@ button{font-family:inherit;cursor:pointer;}
         <span id="syncPill" class="sync-pill off" role="status" aria-live="polite">
           <span class="sync-dot" aria-hidden="true"></span><span id="syncText">Conectando…</span>
         </span>
+        <button id="installBtn" class="icon-btn hidden" title="Instalar app" aria-label="Instalar app">⬇️</button>
         <button id="reloadBtn" class="icon-btn" title="Forçar recarregar" aria-label="Forçar recarregar">⟳</button>
         <span class="user-chip" id="userChip"></span>
         <button id="logoutBtn" class="icon-btn" title="Sair" aria-label="Sair">⎋</button>
@@ -369,7 +426,7 @@ button{font-family:inherit;cursor:pointer;}
   <div class="container">
 
     <!-- DASHBOARD FINANCEIRO -->
-    <div class="card">
+    <div class="card tabbed t-agenda t-relatorio">
       <h2>💰 Resumo financeiro <span class="muted" id="kpiPeriodLabel"></span></h2>
       <div class="kpis">
         <div class="kpi received"><div class="label">Total recebido</div><div class="value" id="kpiReceived">R$ 0,00</div></div>
@@ -379,7 +436,7 @@ button{font-family:inherit;cursor:pointer;}
     </div>
 
     <!-- FILTROS GLOBAIS -->
-    <div class="card">
+    <div class="card tabbed t-agenda">
       <div class="toolbar">
         <div class="view-switch" role="tablist" aria-label="Visões">
           <button data-view="month" class="active" role="tab">Mês</button>
@@ -406,7 +463,7 @@ button{font-family:inherit;cursor:pointer;}
       <!-- COLUNA ESQUERDA: CALENDÁRIO + LISTA DO DIA -->
       <div>
         <!-- CALENDÁRIO -->
-        <div class="card" id="calendarCard">
+        <div class="card tabbed t-agenda" id="calendarCard">
           <div class="cal-head">
             <div class="cal-title" id="calTitle">—</div>
             <div class="cal-nav">
@@ -423,7 +480,7 @@ button{font-family:inherit;cursor:pointer;}
         </div>
 
         <!-- LISTA: dia selecionado / próximos / semana -->
-        <div class="card">
+        <div class="card tabbed t-agenda">
           <h2 id="listTitle">Eventos do dia</h2>
           <div id="listArea"><div class="sk-row skeleton"></div><div class="sk-row skeleton"></div></div>
         </div>
@@ -432,7 +489,7 @@ button{font-family:inherit;cursor:pointer;}
       <!-- COLUNA DIREITA: PARSER + EXPORTAÇÃO -->
       <div>
         <!-- PARSER -->
-        <div class="card parser">
+        <div class="card parser tabbed t-novo">
           <h2>🧠 Interpretar mensagem</h2>
           <p style="margin:-6px 0 12px;font-size:13px;color:var(--text-soft);">
             Cole um texto bagunçado (ex.: WhatsApp). O sistema extrai os campos e abre um preview para você revisar antes de salvar.
@@ -454,7 +511,7 @@ Tema: Jardim Encantado"></textarea>
         </div>
 
         <!-- EXPORTAÇÃO -->
-        <div class="card">
+        <div class="card tabbed t-relatorio">
           <h2>📤 Exportar relatório</h2>
           <div class="form-grid">
             <div><label for="repStart">Data inicial</label><input id="repStart" type="date" /></div>
@@ -469,6 +526,14 @@ Tema: Jardim Encantado"></textarea>
       </div>
     </div>
   </div>
+
+  <!-- Botão flutuante (novo agendamento) e barra de abas — só aparecem no celular -->
+  <button class="fab" id="fab" aria-label="Novo agendamento" title="Novo agendamento">＋</button>
+  <nav class="tabbar" id="tabbar" aria-label="Navegação principal">
+    <button data-tab="agenda" class="active"><span class="ti" aria-hidden="true">📅</span>Agenda</button>
+    <button data-tab="novo"><span class="ti" aria-hidden="true">🧠</span>Interpretar</button>
+    <button data-tab="relatorio"><span class="ti" aria-hidden="true">📤</span>Relatório</button>
+  </nav>
 </div>
 
 <!-- container de toasts e área oculta de relatório -->
@@ -1507,6 +1572,46 @@ function escapeHtml(s){
 }
 const attr = (s) => escapeHtml(s).replace(/"/g,"&quot;");
 function debounce(fn, ms){ let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+
+/* =====================================================================
+   16.5) PWA — navegação por abas (mobile), botão flutuante, instalação
+   ===================================================================== */
+function setMobileTab(tab){
+  document.body.classList.remove("tab-agenda","tab-novo","tab-relatorio");
+  document.body.classList.add("tab-"+tab);
+  document.querySelectorAll("#tabbar button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  window.scrollTo({ top:0, behavior:"auto" });
+  if(tab === "novo"){ const t = $("parserInput"); if(t) t.focus(); }
+}
+document.body.classList.add("tab-agenda");   // aba inicial
+$("tabbar").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if(b) setMobileTab(b.dataset.tab);
+});
+$("fab").addEventListener("click", () => openForm(null));   // novo agendamento em qualquer aba
+
+// Instalação (Android/Chrome): mostra o botão ⬇️ quando o navegador permite instalar.
+let deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  $("installBtn").classList.remove("hidden");
+});
+$("installBtn").addEventListener("click", async () => {
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  $("installBtn").classList.add("hidden");
+});
+window.addEventListener("appinstalled", () => $("installBtn").classList.add("hidden"));
+
+// Service worker — habilita instalação e abertura offline do app (só funciona via HTTPS/localhost).
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(err => console.warn("SW não registrado:", err));
+  });
+}
 
 /* =====================================================================
    17) TESTES SIMPLES (utilitários de data + parser)
