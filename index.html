@@ -669,7 +669,7 @@ function parseMoney(s){
    Sem rótulo, detecta celular e dinheiro por padrão. O resto vai p/ observação.
    ===================================================================== */
 const SINONIMOS = {
-  aniversariante: ["aniversariante","aniversariante(a)","niver","festejado","cliente"],
+  aniversariante: ["aniversariante","aniversariante(a)","aniversário","aniversario","niver","festejante","festejado","festejada","homenageado","homenageada","debutante","cliente"],
   responsavel:    ["responsavel","responsável","resp","atendente","vendedor"],
   celular:        ["celular","cel","telefone","tel","whatsapp","fone","contato"],
   tema:           ["tema","decoração","decoracao","tematica","temática"],
@@ -689,6 +689,35 @@ const SIN_FLAT = Object.entries(SINONIMOS)
 const REGEX_CEL   = /(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?(?:9\s?)?\d{4}[-.\s]?\d{4}/;
 const REGEX_MONEY = /r?\$?\s?\d{1,3}(?:\.\d{3})*,\d{2}|\b\d+,\d{2}\b/i;
 const REGEX_HORA  = /(\d{1,2})\s*(?:h|:)\s*(\d{2})?/;
+
+// Gatilhos de FRASE que indicam o nome do aniversariante sem rótulo:
+// "festa de Maria", "aniversário de João Pedro", "comemoração da Ana", "niver do Léo".
+const REGEX_NOME_FRASE = /(?:anivers[áa]rio|festinha|festa|comemora[çc][ãa]o|niver|bday)\s+(?:de|d[oa]s?|para|pra)\s+(.+)/i;
+
+// Palavras que encerram a captura do nome (para não engolir o resto da frase).
+const STOP_NOME = new Set([
+  "no","na","nos","nas","em","na","dia","as","às","com","valor","local","tema","pacote",
+  "será","sera","vai","ser","hoje","amanhã","amanha","ano","anos","faz","fará","fara",
+  "sábado","sabado","domingo","segunda","terça","terca","quarta","quinta","sexta","que",
+  "completa","completará","fazendo","aniversário","aniversario","niver","festa","comemoração","comemoracao"
+]);
+
+// Extrai um nome limpo do texto que vem depois de "festa de", "aniversário de" etc.
+function extrairNomeAniversariante(tail){
+  const palavras = tail.trim().split(/\s+/);
+  const nome = [];
+  for(let w of palavras){
+    w = w.replace(/[.,;:!?)\]].*$/,"");          // corta pontuação e tudo após ela
+    if(!w) break;
+    if(/\d|r\$/i.test(w)) break;                  // chegou em data/valor → para
+    if(STOP_NOME.has(w.toLowerCase())) break;     // palavra de parada → para
+    nome.push(w);
+    if(nome.length >= 4) break;                   // no máximo 4 palavras
+  }
+  // remove conectores soltos no fim ("Ana de" → "Ana")
+  while(nome.length && ["de","da","do","dos","das","e"].includes(nome[nome.length-1].toLowerCase())) nome.pop();
+  return nome.join(" ").trim();
+}
 
 function parseMessage(text){
   const out = {
@@ -726,6 +755,15 @@ function parseMessage(text){
     if(money){
       if(!out.valor_pago){ out.valor_pago = parseMoney(money[0]); casou = true; }
       else if(!out.valor_restante){ out.valor_restante = parseMoney(money[0]); casou = true; }
+    }
+
+    // (b.1) nome do aniversariante por FRASE, sem rótulo ("Festa de Maria Clara")
+    if(!out.aniversariante){
+      const mNome = linha.match(REGEX_NOME_FRASE);
+      if(mNome){
+        const nome = extrairNomeAniversariante(mNome[1]);
+        if(nome){ out.aniversariante = nome; casou = true; }
+      }
     }
 
     if(!casou) extras.push(linha);
@@ -1500,6 +1538,16 @@ function debounce(fn, ms){ let t; return (...a) => { clearTimeout(t); t=setTimeo
   eq(p.valor_pago, 1500, "parser valor_pago");
   eq(p.valor_restante, 500, "parser valor_restante (longo antes de curto)");
   eq(p.data, "2026-07-19", "parser data");
+
+  // reconhecimento do NOME do aniversariante sem rótulo, por frase
+  eq(parseMessage("Festa de Maria Clara").aniversariante, "Maria Clara", "nome: festa de");
+  eq(parseMessage("Aniversário de João Pedro dia 19/07").aniversariante, "João Pedro", "nome: aniversário de + data");
+  eq(parseMessage("Aniversário de João Pedro dia 19/07").data, `${(new Date()).getFullYear()}-07-19`, "nome convive com data na mesma linha");
+  eq(parseMessage("Comemoração da Ana no Salão Azul").aniversariante, "Ana", "nome: comemoração da, parando em stopword");
+  eq(parseMessage("niver do Léo").aniversariante, "Léo", "nome: niver do");
+  eq(parseMessage("Festa de Bruno Souza R$ 1.500,00").aniversariante, "Bruno Souza", "nome para antes do valor");
+  // rótulo continua tendo prioridade
+  eq(parseMessage("Aniversariante: Pedro\nFesta de Outra Pessoa").aniversariante, "Pedro", "rótulo tem prioridade sobre frase");
 
   console.log(`%cTestes: ${ok} ok, ${fail} falha(s)`, `color:${fail?"#dc2626":"#16a34a"};font-weight:bold;`);
 })();
