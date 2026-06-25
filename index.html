@@ -771,14 +771,21 @@ function authErrorMsg(code){
     "auth/invalid-email":"E-mail inválido.",
     "auth/missing-password":"Informe a senha.",
     "auth/weak-password":"A senha precisa de pelo menos 6 caracteres.",
-    "auth/email-already-in-use":"Este e-mail já está cadastrado.",
+    "auth/email-already-in-use":"Este e-mail já está cadastrado. Tente entrar.",
     "auth/invalid-credential":"E-mail ou senha incorretos.",
     "auth/user-not-found":"Usuário não encontrado.",
     "auth/wrong-password":"Senha incorreta.",
     "auth/popup-closed-by-user":"Login cancelado.",
-    "auth/network-request-failed":"Falha de rede. Verifique sua conexão."
+    "auth/popup-blocked":"O navegador bloqueou o popup. Libere os popups para este site.",
+    "auth/network-request-failed":"Falha de rede. Verifique sua conexão.",
+    "auth/operation-not-allowed":"Provedor de login não ativado. No Firebase: Authentication → Sign-in method → ative E-mail/senha (e Google).",
+    "auth/admin-restricted-operation":"Cadastro bloqueado. Ative E-mail/senha em Authentication → Sign-in method.",
+    "auth/configuration-not-found":"Authentication não configurado neste projeto. Abra Authentication → Começar no console.",
+    "auth/unauthorized-domain":"Domínio não autorizado. Adicione-o em Authentication → Settings → Domínios autorizados.",
+    "auth/api-key-not-valid":"API key inválida — confira o firebaseConfig.",
+    "auth/internal-error":"Erro interno do Firebase. Confira se o Authentication está ativado."
   };
-  return map[code] || "Não foi possível concluir. Tente novamente.";
+  return map[code] || `Não foi possível concluir. (código: ${code || "desconhecido"})`;
 }
 
 $("toggleMode").addEventListener("click", () => {
