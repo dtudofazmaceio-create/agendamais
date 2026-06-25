@@ -19,8 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-<!-- html2pdf para gerar PDF e SheetJS (xlsx) para planilha -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<!-- SheetJS (xlsx) para exportação em planilha -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <!-- ===========================================================================
@@ -143,6 +142,7 @@ button{font-family:inherit;cursor:pointer;}
 }
 .icon-btn:hover{background:rgba(255,255,255,.24);}
 .user-chip{font-size:12px;color:rgba(255,255,255,.85);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.avatar{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.22);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:none;}
 
 .container{max-width:1100px;margin:0 auto;padding:18px;}
 .grid-2{display:grid;grid-template-columns:1fr;gap:18px;}
@@ -283,6 +283,21 @@ button{font-family:inherit;cursor:pointer;}
 .detail-row .k{color:var(--text-soft);min-width:96px;font-weight:600;}
 .detail-row .v{flex:1;font-weight:500;}
 
+/* faixa de destaque no topo do card de detalhes */
+.detail-hero{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:12px 14px;margin-bottom:8px;}
+.detail-hero .dh-when{font-weight:700;font-size:14px;color:var(--navy-2);}
+/* observação longa: quebra linhas e rola dentro do próprio campo */
+.detail-row.obs{align-items:flex-start;}
+.detail-row .obs-v{white-space:pre-wrap;word-break:break-word;max-height:160px;overflow:auto;
+  background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-weight:400;}
+/* ações do detalhe: Concluir | Editar e Excluir ocupando a linha inteira embaixo */
+.detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;}
+.detail-actions .btn{width:100%;}
+.detail-actions .danger-btn{grid-column:1 / -1;color:var(--danger);border-color:var(--danger);}
+.detail-actions .danger-btn:hover{background:var(--danger-soft);}
+
 /* ============================== TOASTS ============================== */
 #toasts{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:8px;align-items:center;width:min(420px,calc(100% - 24px));}
 .toast{
@@ -306,18 +321,16 @@ button{font-family:inherit;cursor:pointer;}
 .spinner.dark{border-color:rgba(15,23,42,.2);border-top-color:var(--navy-2);}
 @keyframes spin{to{transform:rotate(360deg);}}
 
-/* área de relatório (renderizada fora da tela para virar PDF) */
-#reportSheet{position:fixed;left:-99999px;top:0;width:760px;background:#fff;color:#0f172a;font-family:var(--font);}
-.rep-header{background:linear-gradient(135deg,var(--navy-1),var(--navy-2));color:#fff;padding:22px 26px;}
-.rep-header h1{margin:0;font-size:22px;}
-.rep-header .meta{font-size:12px;opacity:.85;margin-top:4px;}
-.rep-body{padding:22px 26px;}
-.rep-table{width:100%;border-collapse:collapse;font-size:12px;}
-.rep-table th{background:#eef2f7;text-align:left;padding:8px 10px;border-bottom:2px solid var(--navy-2);font-weight:700;}
-.rep-table td{padding:7px 10px;border-bottom:1px solid var(--border);}
-.rep-totals{margin-top:16px;display:flex;gap:24px;font-size:13px;font-weight:700;}
-.rep-totals .r{color:var(--success);}
-.rep-totals .p{color:var(--warning);}
+/* resumo do período no painel de relatório */
+.rep-preview{margin:14px 0;}
+.rep-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.rep-stats > div{border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);padding:10px 12px;text-align:center;}
+.rep-stats span{display:block;font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.03em;}
+.rep-stats b{font-size:18px;font-weight:800;letter-spacing:-.02em;}
+.rep-stats b.ok{color:var(--success);}
+.rep-stats b.warn{color:var(--warning);}
+.rep-note{font-size:13px;padding:10px 12px;border-radius:var(--radius-sm);margin:14px 0;}
+.rep-note.err{background:var(--danger-soft);color:var(--danger);font-weight:500;}
 
 /* ============================== APARÊNCIA DE APP NATIVO (PWA) ============================== */
 /* respeita a barra de status (notch) quando instalado em tela cheia */
@@ -328,6 +341,16 @@ button{font-family:inherit;cursor:pointer;}
 .fab{ display:none; }
 
 @media(max-width:879px){
+  /* cabeçalho compacto: sem estouro, esconde o e-mail (fica o avatar) */
+  .app-header-row{ gap:8px; }
+  .header-tools{ gap:7px; }
+  .user-chip{ display:none; }
+  .brand{ font-size:16px; }
+  .brand .logo{ width:28px; height:28px; }
+  .sync-pill{ font-size:11px; padding:5px 9px; }
+  .icon-btn{ width:34px; height:34px; font-size:15px; }
+  .avatar{ width:30px; height:30px; font-size:13px; }
+
   /* espaço para a barra inferior não cobrir o conteúdo */
   .container{ padding-bottom:96px; }
 
@@ -364,6 +387,10 @@ button{font-family:inherit;cursor:pointer;}
   .day{ min-height:52px; }
   .btn{ padding:13px 16px; }
   .ev-actions button{ width:38px; height:38px; }
+
+  /* modais como "bottom sheet" (deslizam de baixo), estilo app nativo */
+  .overlay{ align-items:flex-end; padding:0; }
+  .modal{ max-width:none; width:100%; border-radius:20px 20px 0 0; max-height:92vh; }
 }
 </style>
 </head>
@@ -417,6 +444,7 @@ button{font-family:inherit;cursor:pointer;}
         </span>
         <button id="installBtn" class="icon-btn hidden" title="Instalar app" aria-label="Instalar app">⬇️</button>
         <button id="reloadBtn" class="icon-btn" title="Forçar recarregar" aria-label="Forçar recarregar">⟳</button>
+        <span class="avatar" id="avatar" aria-hidden="true"></span>
         <span class="user-chip" id="userChip"></span>
         <button id="logoutBtn" class="icon-btn" title="Sair" aria-label="Sair">⎋</button>
       </div>
@@ -510,16 +538,16 @@ Tema: Jardim Encantado"></textarea>
           </div>
         </div>
 
-        <!-- EXPORTAÇÃO -->
+        <!-- RELATÓRIO -->
         <div class="card tabbed t-relatorio">
-          <h2>📤 Exportar relatório</h2>
+          <h2>📤 Relatório do período</h2>
           <div class="form-grid">
             <div><label for="repStart">Data inicial</label><input id="repStart" type="date" /></div>
             <div><label for="repEnd">Data final</label><input id="repEnd" type="date" /></div>
           </div>
+          <div id="repPreview" class="rep-preview"></div>
           <div class="parser-actions">
-            <button id="exportPdf" class="btn btn-primary" style="width:auto;">📄 PDF</button>
-            <button id="exportXlsx" class="btn btn-soft">📊 Excel</button>
+            <button id="exportXlsx" class="btn btn-primary" style="width:auto;">📊 Exportar Excel</button>
             <button id="exportCsv" class="btn btn-soft">📑 CSV</button>
           </div>
         </div>
@@ -538,7 +566,6 @@ Tema: Jardim Encantado"></textarea>
 
 <!-- container de toasts e área oculta de relatório -->
 <div id="toasts" aria-live="assertive"></div>
-<div id="reportSheet"></div>
 
 <!-- =================================================================== -->
 <!--  LÓGICA DA APLICAÇÃO (ES MODULE)                                     -->
@@ -939,6 +966,7 @@ onAuthStateChanged(auth, (user) => {
     $("authScreen").classList.add("hidden");
     $("app").classList.remove("hidden");
     $("userChip").textContent = user.email || user.displayName || "Conectado";
+    $("avatar").textContent = (user.email || user.displayName || "?").trim().charAt(0).toUpperCase();
     startListener(user.uid);
     initReportDates();
   }else{
@@ -1000,6 +1028,7 @@ function renderAll(){
   renderDashboard();
   renderCalendar();
   renderList();
+  updateReportPreview();
 }
 
 // aplica busca + filtros de status/responsável
@@ -1324,9 +1353,10 @@ function openDetail(id){
       <button class="modal-close" data-close aria-label="Fechar">✕</button>
     </div>
     <div class="modal-body">
-      <div style="margin-bottom:8px;"><span class="badge ${status}"><span class="b-dot"></span>${status}</span></div>
-      ${row("📅","Data", formatDisplayDate(e.data))}
-      ${row("⏰","Hora", e.hora_inicio)}
+      <div class="detail-hero">
+        <div class="dh-when">📅 ${formatDisplayDate(e.data).split(" ")[0]}${e.hora_inicio ? ` · ⏰ ${e.hora_inicio}` : ""}</div>
+        <span class="badge ${status}"><span class="b-dot"></span>${status}</span>
+      </div>
       ${row("👤","Responsável", e.responsavel)}
       ${row("📞","Celular", e.celular)}
       ${row("📍","Local", e.local)}
@@ -1334,12 +1364,14 @@ function openDetail(id){
       ${row("🎨","Tema", e.tema)}
       ${row("💵","Valor pago", formatMoney(e.valor_pago))}
       ${row("⏳","A receber", formatMoney(e.valor_restante))}
-      ${row("📝","Observação", e.observacao)}
+      ${e.observacao ? `<div class="detail-row obs"><span class="ic">📝</span><span class="k">Observação</span><span class="v obs-v">${escapeHtml(e.observacao)}</span></div>` : ""}
     </div>
     <div class="modal-foot">
-      <button class="btn btn-soft" id="toggleDone" style="width:auto;">${e.concluido?"↩️ Reabrir":"✅ Concluir"}</button>
-      <button class="btn btn-soft" id="editFromDetail" style="width:auto;">✏️ Editar</button>
-      <button class="btn btn-soft" id="delFromDetail" style="width:auto;color:var(--danger);border-color:var(--danger);">🗑️ Excluir</button>
+      <div class="detail-actions">
+        <button class="btn btn-soft" id="toggleDone">${e.concluido?"↩️ Reabrir":"✅ Concluir"}</button>
+        <button class="btn btn-soft" id="editFromDetail">✏️ Editar</button>
+        <button class="btn btn-soft danger-btn" id="delFromDetail">🗑️ Excluir</button>
+      </div>
     </div>
   `);
 
@@ -1463,6 +1495,7 @@ function initReportDates(){
   const now = new Date();
   $("repStart").value = formatDateKey(new Date(now.getFullYear(), now.getMonth(), 1));
   $("repEnd").value   = formatDateKey(new Date(now.getFullYear(), now.getMonth()+1, 0));
+  updateReportPreview();
 }
 
 function getReportData(){
@@ -1475,60 +1508,24 @@ function getReportData(){
   return { ini, fim, rows };
 }
 
-$("exportPdf").addEventListener("click", () => {
-  const data = getReportData(); if(!data) return;
-  const { ini, fim, rows } = data;
-  const totalR = rows.reduce((s,e)=>s+(Number(e.valor_pago)||0),0);
-  const totalP = rows.reduce((s,e)=>s+(Number(e.valor_restante)||0),0);
-  const geradoEm = new Date().toLocaleString("pt-BR");
-
-  // monta a folha estilizada fora da tela e converte em PDF (com paginação real)
-  $("reportSheet").innerHTML = `
-    <div class="rep-header">
-      <h1>Relatório de Agendamentos</h1>
-      <div class="meta">Período: ${formatDisplayDate(ini).split(" ")[0]} a ${formatDisplayDate(fim).split(" ")[0]} · Gerado em ${geradoEm}</div>
-    </div>
-    <div class="rep-body">
-      <table class="rep-table">
-        <thead><tr><th>Data</th><th>Hora</th><th>Cliente</th><th>Responsável</th><th>Local</th><th>Status</th><th>Pago</th><th>A receber</th></tr></thead>
-        <tbody>
-          ${rows.map(e=>`<tr>
-            <td>${formatDisplayDate(e.data).split(" ")[0]}</td>
-            <td>${e.hora_inicio||"—"}</td>
-            <td>${escapeHtml(e.aniversariante||e.tema||"—")}</td>
-            <td>${escapeHtml(e.responsavel||"—")}</td>
-            <td>${escapeHtml(e.local||"—")}</td>
-            <td>${e.status||(e.concluido?"concluído":"pendente")}</td>
-            <td>${formatMoney(e.valor_pago)}</td>
-            <td>${formatMoney(e.valor_restante)}</td>
-          </tr>`).join("") || `<tr><td colspan="8" style="text-align:center;padding:20px;">Nenhum evento no período.</td></tr>`}
-        </tbody>
-      </table>
-      <div class="rep-totals">
-        <span class="r">Total recebido: ${formatMoney(totalR)}</span>
-        <span class="p">Total a receber: ${formatMoney(totalP)}</span>
-        <span>Eventos: ${rows.length}</span>
-      </div>
-    </div>`;
-
-  toast("Gerando PDF…");
-  html2pdf().set({
-    margin:[10,10,14,10],
-    filename:`relatorio_${ini}_a_${fim}.pdf`,
-    image:{type:"jpeg",quality:.98},
-    html2canvas:{scale:2},
-    jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
-    pagebreak:{mode:["css","legacy"]}
-  }).from($("reportSheet")).toPdf().get("pdf").then(pdf => {
-    // paginação real: numera as páginas no rodapé
-    const total = pdf.internal.getNumberOfPages();
-    for(let i=1;i<=total;i++){
-      pdf.setPage(i);
-      pdf.setFontSize(9); pdf.setTextColor(120);
-      pdf.text(`Página ${i} de ${total}`, pdf.internal.pageSize.getWidth()/2, pdf.internal.pageSize.getHeight()-6, {align:"center"});
-    }
-  }).save().then(() => toast("PDF gerado.", "success"));
-});
+// resumo ao vivo do período selecionado (substitui o antigo PDF)
+function updateReportPreview(){
+  const box = $("repPreview");
+  if(!box) return;
+  const ini = $("repStart").value, fim = $("repEnd").value;
+  if(!ini || !fim){ box.innerHTML = ""; return; }
+  if(ini > fim){ box.innerHTML = `<div class="rep-note err">A data inicial deve ser ≤ data final.</div>`; return; }
+  const rows = applyFilters(state.allEvents).filter(e => e.data >= ini && e.data <= fim);
+  const recebido = rows.reduce((s,e)=>s+(Number(e.valor_pago)||0),0);
+  const aReceber = rows.reduce((s,e)=>s+(Number(e.valor_restante)||0),0);
+  box.innerHTML = `<div class="rep-stats">
+    <div><span>Eventos</span><b>${rows.length}</b></div>
+    <div><span>Recebido</span><b class="ok">${formatMoney(recebido)}</b></div>
+    <div><span>A receber</span><b class="warn">${formatMoney(aReceber)}</b></div>
+  </div>`;
+}
+$("repStart").addEventListener("change", updateReportPreview);
+$("repEnd").addEventListener("change", updateReportPreview);
 
 function rowsToMatrix(rows){
   const header = ["Data","Hora","Cliente","Responsável","Celular","Local","Pacote","Tema","Status","Valor Pago","Valor Restante","Observação"];
